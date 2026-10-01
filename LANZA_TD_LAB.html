@@ -159,6 +159,8 @@ details.log[open] summary::before{content:"− "}
       <div class="row"><label for="py">Vertical</label><input type="range" id="py" min="-1" max="1" step="0.01"><output id="pyO"></output></div>
       <p class="hint">Sobre el monitor: arrastrá para mover, rueda para escalar, doble clic centra.</p>
       <label class="chk"><input type="checkbox" id="marca"> Logo arriba y LANZAPOST.COM</label>
+      <div class="row"><label for="velo">Velo</label><input type="range" id="velo" min="0" max="1" step="0.05"><output id="veloO"></output></div>
+      <p class="hint">Velo: oscurece las franjas del logo y del pie para que se lean sobre imágenes claras. En 0 la imagen queda entera; los logos llevan una sombra suave igual.</p>
       <label class="chk"><input type="checkbox" id="cierre"> Cierre con logo (3 s: el estilo procesa el logo y aterriza en el real)</label>
     </div>
 
@@ -244,7 +246,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, cierre:true});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!STYLES[S.estilo]) S.estilo = "feedback"; if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
@@ -577,14 +579,15 @@ function render(f){
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
   const fm = F(), {W, H} = fm, ink = S.inv ? "#000" : "#fff", inC = f >= TL.body;
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.drawImage(glc, 0, 0);
-  if (S.marca){ const g = ctx.createLinearGradient(0, 0, 0, H), sh = S.inv ? "255,255,255" : "0,0,0";
-    fm.mask.forEach(([y, a]) => g.addColorStop(Math.min(1, y/H), `rgba(${sh},${(1 - a).toFixed(3)})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  if (S.marca && S.velo > 0){ const g = ctx.createLinearGradient(0, 0, 0, H), sh = S.inv ? "255,255,255" : "0,0,0";   // velo opcional detrás de logo y pie
+    fm.mask.forEach(([y, a]) => g.addColorStop(Math.min(1, y/H), `rgba(${sh},${((1 - a)*S.velo).toFixed(3)})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
   if (inC){ const k = sm(TL.body + 20, TL.body + 44, f); if (k > 0){ ctx.globalAlpha = k; tint(S.inv, () => ctx.drawImage(logoCanvas(), 0, 0)); ctx.globalAlpha = 1; } }
   if (S.marca){
     const head = inC ? 1 - sm(TL.body, TL.body + 12, f) : 1;
+    ctx.save(); ctx.shadowColor = S.inv ? "rgba(255,255,255,.7)" : "rgba(0,0,0,.7)"; ctx.shadowBlur = 18;   // sombra suave para que se lean sin manchar la imagen
     if (head > 0 && logoImg.complete){ ctx.globalAlpha = head; tint(S.inv, () => ctx.drawImage(logoImg, fm.head[0], fm.head[1], 170, 170*122.5/654.9)); ctx.globalAlpha = 1; }
     ctx.font = `400 18px "JetBrains Mono"`; ctx.fillStyle = ink; ctx.textBaseline = "top"; ctx.textAlign = "center";
-    ctx.fillText("LANZAPOST.COM".split("").join(String.fromCharCode(8202)), W/2, fm.foot); ctx.textAlign = "left"; }
+    ctx.fillText("LANZAPOST.COM".split("").join(String.fromCharCode(8202)), W/2, fm.foot); ctx.restore(); }
 }
 function tint(on, draw){ if (!on){ draw(); return; } ctx.save(); ctx.filter = "invert(1)"; draw(); ctx.restore(); }
 
@@ -706,8 +709,8 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
 
 // ─── controles
-const num = ["pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => ["estela","vol","esc"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
+const fmtOut = (k, v) => ["estela","vol","esc","velo"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
     b.onclick = () => { S.estilo = k; reiniciar(); sync(); }; box.append(b); } }
