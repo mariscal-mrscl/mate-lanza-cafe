@@ -246,6 +246,11 @@ details.log[open] summary::before{content:"− "}
       <div class="seg" id="arrSeg"><button data-arr="andando">Ya andando</button><button data-arr="cero">Desde cero</button></div>
       <div class="row" id="preRow"><label for="pre">Precalentado</label><input type="range" id="pre" min="12" max="144" step="6"><output id="preO"></output></div>
       <p class="hint">Ya andando: antes del primer cuadro el lab corre el efecto en silencio con el final de la pieza, así el feedback, la estela, las partículas, el slit-scan y la reacción-difusión ya están llenos en el cuadro 0 y el loop no tiene costura. Vale igual en la vista previa, al saltar en la línea de tiempo y en el MP4. Precalentado: cuántos cuadros corre antes (más = memoria más cargada; tarda un poco más al arrancar).</p>
+      <h3>Reloj del efecto</h3>
+      <div class="row"><label for="desfase">Desfase</label><input type="range" id="desfase" min="0" max="10" step="0.25"><output id="desfaseO"></output></div>
+      <label class="chk"><input type="checkbox" id="libre"> Cada vuelta distinta: en la vista previa el efecto sigue de largo y no vuelve a empezar con el clip</label>
+      <div class="seg"><button id="sortear">Sortear desfase</button></div>
+      <p class="hint">El movimiento propio del efecto (giros, deriva del ruido, flujo de partículas) corre con su reloj. Con desfase, cuando el clip arranca el efecto ya va por otro momento, y vale también en el MP4. Los keyframes, los gestos grabados, el pulso y los cortes siguen pegados al clip y a la música.</p>
     </div>
 
     <div class="grp">
@@ -375,7 +380,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], recSoltar:"queda", arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -775,7 +780,7 @@ async function calentar(f, exacto = false){   // vacía la memoria y, si arranca
   CAL = true; stopAudio(); reiniciar(); const N = S.arranque === "andando" ? Math.min(S.pre, TL.body) : 0;
   // exacto (MP4): cada cuadro previo con su imagen de video justa. En la vista previa, rápido: el video no se busca cuadro a cuadro
   // (es lo que más tarda) y se espera a la placa cada 4 cuadros (leer un píxel obliga a esperarla; así no se le amontona trabajo)
-  try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; if (exacto) await prepExacto(g); render(g, true);
+  try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; if (exacto) await prepExacto(g); render(g, true, relojEf(f, exacto) - k);
       if (exacto || k % 4 === 1){ gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } } }
   finally { lastF = f - 1; CAL = false; } }
 function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
@@ -804,7 +809,7 @@ function parEf(k, st, f, ft, seg){ const md = modsDe(k, st), amt = S.capas[k].mo
 const opDe = (c, f) => c.kfOp && c.kfOp.length ? kfVal(c.kfOp, f) : c.op;
 const estiloDe = (k, seg, f) => { const c = S.capas[k]; if (c.cambios && c.cambios.length && f != null) return estiloEn(c, f); return c.seqOn && c.seq && c.seq.length ? c.seq[Math.floor(((seg && seg.k) || 0)/(c.seqCada || 1)) % c.seq.length] : c.estilo; };
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
-  const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = f/FPS;
+  const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = base.uT;
   const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
   const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
   if (st === "slitscan"){   // guarda la fuente en el anillo de cuadros pasados
@@ -850,14 +855,16 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
     bindT(dst); use(P.rd, U, {uSrc: r.src, uState: rd[L.rdI].t}); quad(); }
   else { bindT(dst); use(P[st] && st !== "rd" && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   return dst; }
-function render(f, pre = false){
+let VUELTA = 0;   // vueltas del loop en la vista previa (con "cada vuelta distinta", el reloj del efecto no vuelve a cero)
+const relojEf = (f, pre) => f + Math.round(S.desfase*FPS) + (S.libre && !pre && !exportando ? VUELTA*TL.total : 0);
+function render(f, pre = false, fe = relojEf(f, pre)){
   if (!glOk) return; const r = recursos(), {W, H} = r, fm = F();
   if (cv.width !== fm.W || cv.height !== fm.H){ cv.width = fm.W; cv.height = fm.H; }
   if (!pre && salto(f)) reiniciar(); lastF = f;   // si la compu no llega y saltea algunos cuadros, la memoria sigue
   const sk = claveFuente(f); if (sk !== r.srcKey){ fuente(f); r.srcKey = sk;
     gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC); }
   const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
-  const base = {uRes: [W, H], uAnchoF: fm.W, uT: f/FPS, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
+  const base = {uRes: [W, H], uAnchoF: fm.W, uT: fe/FPS, uF: fe, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
     uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
   // la máscara de figura y fondo se arma antes: la usan las capas que van solo en una parte y el Sujeto general
   let mk = false; const zonas = S.capas.some(c => c.on && c.zona && c.zona !== "todo");
@@ -1183,7 +1190,7 @@ function startAudio(){ stopAudio(); if (!soundOn || !PLAY || !actx) return; cons
   srcNode = actx.createBufferSource(); srcNode.buffer = PLAY; srcNode.connect(master); t0 = actx.currentTime + .03; f0 = fi; srcNode.start(t0, off); }
 function stopAudio(){ if (srcNode){ try { srcNode.stop(); } catch(e){} srcNode.disconnect(); srcNode = null; } }
 let fpsE = 0, fpsT = 0, kfVisto = -1, estVisto = ""; let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
-function wrap(){ if (recorder){ recorder.stop(); recorder = null; } fi = 0; stopAudio(); }
+function wrap(){ if (recorder){ recorder.stop(); recorder = null; } fi = 0; VUELTA = S.libre ? VUELTA + 1 : 0; stopAudio(); }
 function loop(ts){
   if (!exportando){
     if (playing && !CAL){
@@ -1255,8 +1262,8 @@ document.querySelectorAll("#exAmp button").forEach(b => b.onclick = () => { EX.a
 document.querySelector('#exAmp [data-x="medio"]').setAttribute("aria-pressed", "true");
 
 // ─── controles
-const num = ["pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
+const fmtOut = (k, v) => k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
     b.onclick = () => { recEstilo(k); if (R && R.L[S.sel] && !REC.on){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
@@ -1296,7 +1303,7 @@ function sync(){
   if (!SJ.corriendo) sjHint(); if (["ia", "pro", "mov"].includes(S.sjModo)) analizarSujeto();
   cv.style.cursor = PIN.modo !== "off" && !sjOff ? "crosshair" : "";
   document.querySelectorAll("#arrSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.arr === S.arranque)); $("preRow").hidden = S.arranque !== "andando";
-  $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
+  $("libre").checked = S.libre; $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur === "video" && !!vid0();
   $("songBox").hidden = S.musica !== "cancion"; $("songOff").max = SONG ? Math.max(1, Math.floor(SONG.duration - 1)) : 1; $("songOff").value = S.songOff; $("songOffO").textContent = S.songOff.toFixed(2) + " s";
   document.querySelector('#musica [data-m="video"]').disabled = !VAUD;
@@ -1319,6 +1326,8 @@ $("aramp").oninput = e => { S.aramp = e.target.value; save(); };
 $("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
 document.querySelectorAll("#arrSeg button").forEach(b => b.onclick = () => { S.arranque = b.dataset.arr; lastF = -1e9; sync(); });
 $("pre").addEventListener("change", () => { lastF = -1e9; });
+$("libre").onchange = e => { S.libre = e.target.checked; VUELTA = 0; sync(); };
+$("sortear").onclick = () => { S.desfase = .5 + Math.floor(Math.random()*39)*.25; sync(); };
 // parámetros: el slider muestra el valor del cuadro (keyframes); moverlo corrige el keyframe de ese cuadro si el parámetro ya tiene
 function slidersKF(){ const est = estSel(), kf = kfsDe(S.sel, est), v = parBase(S.sel, est, fi); kfVisto = fi;
   [0, 1, 2].forEach(i => { if (document.activeElement !== $("p" + (i + 1))) $("p" + (i + 1)).value = v[i]; $("p" + (i + 1) + "O").textContent = Math.round(v[i]*100);
