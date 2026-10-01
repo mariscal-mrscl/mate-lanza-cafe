@@ -113,6 +113,29 @@ details.log[open] summary::before{content:"− "}
     </div>
 
     <div class="grp">
+      <h2>ASCII</h2>
+      <div class="seg" id="asciiSeg"><button data-x="off">Apagado</button><button data-x="sobre">Sobre el estilo</button><button data-x="solo">Solo ASCII</button></div>
+      <div id="asciiBox" class="grp" style="padding:0;border:0">
+        <div class="row"><label for="afs">Tamaño</label><input type="range" id="afs" min="5" max="40" step="1"><output id="afsO"></output></div>
+        <div class="row"><label for="apeso">Grosor</label><input type="range" id="apeso" min="100" max="800" step="100"><output id="apesoO"></output></div>
+        <div class="row two"><label for="arampSel">Rampa</label>
+          <select id="arampSel">
+            <option value=" .,:;-=+i1tfLCG08@">Estándar</option>
+            <option value=" .:1742305689">Dígitos</option>
+            <option value=" .:-=+*#%@">Densa</option>
+            <option value=" .'`^&quot;,:;Il!i&gt;&lt;~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&amp;8%B@">Larga</option>
+            <option value=" .oO0@">Puntos</option>
+            <option value=" LANZA">LANZA</option>
+            <option value="custom">Propia…</option>
+          </select></div>
+        <div class="row two" id="arampRow" hidden><label for="aramp">Caracteres</label><input type="text" id="aramp" spellcheck="false"></div>
+        <div class="row"><label for="agam">Contraste</label><input type="range" id="agam" min="0.5" max="2.5" step="0.05"><output id="agamO"></output></div>
+        <div class="row" id="amixRow"><label for="amix">Imagen debajo</label><input type="range" id="amix" min="0" max="1" step="0.05"><output id="amixO"></output></div>
+      </div>
+      <p class="hint">El ASCII va al final de la cadena: lee el brillo de lo que arma el estilo (con su estela) y lo escribe en caracteres. «Sobre el estilo» deja ver la imagen debajo; «Solo ASCII» deja únicamente las letras.</p>
+    </div>
+
+    <div class="grp">
       <h2>Terminación</h2>
       <div class="seg" id="color"><button data-c="bn">Blanco y negro</button><button data-c="color">Color</button></div>
       <div class="row"><label for="estela">Estela</label><input type="range" id="estela" min="0" max="0.96" step="0.01"><output id="estelaO"></output></div>
@@ -202,8 +225,9 @@ details.log[open] summary::before{content:"− "}
           <li><b>Líneas Rutt-Etra</b>: Line SOP por fila desplazada por la imagen.</li>
           <li><b>Caleidoscopio</b>: GLSL polar con espejos.</li>
           <li><b>Reacción-difusión</b>: Gray-Scott en un GLSL TOP con feedback, sembrado por la imagen.</li>
-          <li><b>Glitch</b>: bloques y filas corridos más separación RGB, re-sorteados en cada corchea.</li>
-          <li><b>Celdas Voronoi</b>: GLSL de celdas, cada una con el color de su centro.</li>
+          <li><b>Malla 3D</b>: Grid SOP desplazado por la imagen, dibujado en alambre (Wireframe MAT) con cámara que recorre.</li>
+          <li><b>Partículas</b>: Particles GPU que nacen en lo claro de la imagen y viajan por un campo de ruido (curl noise), con estela.</li>
+          <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
         </ul>
         <h4>Hereda de la serie</h4>
         <ul>
@@ -238,15 +262,15 @@ const STYLES = {
   trama:    {n:"Trama de puntos", td:"GLSL halftone", d:"Semitono: puntos que crecen con la luz, en una grilla que se puede girar.", p:["Celda","Ángulo","Suavidad"], v:[.2,.25,.1]},
   nube:     {n:"Nube de puntos", td:"Instancing", d:"La imagen como relieve 3D de puntos: el brillo es profundidad y la cámara gira despacio.", p:["Densidad","Profundidad","Giro"], v:[.45,.5,.45]},
   lineas:   {n:"Líneas Rutt-Etra", td:"Line SOP", d:"Líneas de barrido que se levantan con el brillo, como el sintetizador de video Rutt-Etra.", p:["Líneas","Altura","Inclinación"], v:[.4,.45,.4]},
+  malla:    {n:"Malla 3D", td:"Grid SOP + Displace", d:"La imagen como terreno de alambre: una grilla que se levanta con el brillo mientras la cámara la recorre. El grave empuja el relieve.", p:["Resolución","Altura","Cámara"], v:[.35,.5,.45]},
+  particulas:{n:"Partículas", td:"Particles GPU", d:"Miles de partículas nacen en lo claro de la imagen y viajan por un campo de ruido dejando estela. El grave las acelera.", p:["Cantidad","Remolino","Velocidad"], v:[.5,.4,.4]},
   kaleido:  {n:"Caleidoscopio", td:"GLSL polar", d:"Espejos radiales sobre la imagen; el grave hace girar los gajos.", p:["Gajos","Giro","Zoom"], v:[.3,.6,.45]},
   rd:       {n:"Reacción-difusión", td:"Gray-Scott", d:"Simulación química sembrada por la imagen: crecen corales donde hay luz y células en la sombra. Cada corte siembra de nuevo.", p:["Escala","Velocidad","Imagen"], v:[.35,.5,.2]},
-  glitch:   {n:"Glitch", td:"Displace por bloques", d:"Bloques y filas que se corren, canales separados; se re-sortea en cada corchea y el grave decide cuántos.", p:["Bloques","Desfase","Separación"], v:[.4,.4,.3]},
-  celdas:   {n:"Celdas Voronoi", td:"GLSL voronoi", d:"Mosaico orgánico: cada celda toma el color de su centro y las celdas respiran.", p:["Celdas","Bordes","Movimiento"], v:[.35,.3,.3]}
 };
 
 const S = Object.assign({estilo:"feedback", par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!STYLES[S.estilo]) S.estilo = "feedback"; if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
@@ -343,29 +367,27 @@ kaleido: `void main(){
   vec2 q = vec2(cos(th), sin(th))*r*(1.6 - uP3*1.2)/a + .5;
   q = 1. - abs(1. - mod(q, 2.));
   o = vec4(texture(uSrc, q).rgb, 1.); }`,
-glitch: `void main(){
-  vec2 uv = vUv; float bl = 3. + floor(uP1*30.);
-  vec2 b = floor(uv*vec2(bl*.6, bl*2.));
-  float on = step(1. - (.12 + .6*min(1., PK)), hash(b + uSeed*1.37));
-  uv.x += (hash(b + uSeed + 3.1) - .5)*uP2*.35*on;
-  float row = floor(uv.y*uRes.y/(2. + floor(hash(vec2(uSeed, 2.))*6.)));
-  uv.x += (hash(vec2(row, uSeed)) - .5)*uP2*.03*step(.7, hash(vec2(row*.1, uSeed + 9.)))*(.3 + HK);
-  float sp = uP3*.025*(.4 + PK*1.6);
-  vec3 c = vec3(texture(uSrc, uv + vec2(sp, 0.)).r, texture(uSrc, uv).g, texture(uSrc, uv - vec2(sp, 0.)).b);
-  if (on > 0. && hash(b + uSeed + 7.) > .75) c = floor(c*3.)/3.;
-  if (on > 0. && hash(b + uSeed + 11.) > .9) c = 1. - c;
-  o = vec4(c, 1.); }`,
-celdas: `void main(){
-  vec2 a = asp(); float sc = 4. + uP1*44.;
-  vec2 p = vUv*a*sc, i = floor(p), f = fract(p), best = vec2(0.);
-  float d1 = 9., d2 = 9.;
-  for (int y=-1; y<=1; y++) for (int x=-1; x<=1; x++){
-    vec2 g = vec2(x, y), id = i + g, j = vec2(hash(id), hash(id + 31.7));
-    j = .5 + .45*sin(uT*(.2 + uP3*2.) + 6.2831*j + PK*1.5);
-    float d = length(g + j - f);
-    if (d < d1){ d2 = d1; d1 = d; best = id + j; } else if (d < d2) d2 = d; }
-  vec3 s = texture(uSrc, best/sc/a).rgb;
-  o = vec4(s*mix(1., smoothstep(0., .02 + uP2*.25, d2 - d1), min(1., uP2*8.)), 1.); }`,
+pSim: `uniform sampler2D uState; uniform float uReset, uLifeF;
+vec2 curl(vec2 p){ float e = .02; return vec2(fbm(p + vec2(0., e)) - fbm(p - vec2(0., e)), -(fbm(p + vec2(e, 0.)) - fbm(p - vec2(e, 0.))))/(2.*e); }
+vec4 nace(vec2 id){ vec2 best = vec2(.5); float bl = -1.;
+  for (int k=0; k<4; k++){ vec2 q = vec2(hash(id + vec2(float(k)*7.1, uF)), hash(id*1.7 + vec2(uF, float(k)) + 3.)); float L = lum(texture(uSrc, q).rgb); if (L > bl){ bl = L; best = q; } }
+  return vec4(best, 0., bl); }
+void main(){
+  vec2 id = gl_FragCoord.xy; vec4 s = texture(uState, vUv);
+  if (uReset > .5){ vec4 n = nace(id); n.z = hash(id + 5.3); o = n; return; }
+  if (s.z >= 1.){ o = nace(id); return; }
+  vec2 a = asp(), v = curl(s.xy*a*(1.2 + uP2*5.) + vec2(uT*.07, -uT*.05));
+  vec2 q = s.xy + v*(.0006 + uP3*.004)*(1. + 2.*PK)/a;
+  o = vec4(q, (q.x < 0. || q.y < 0. || q.x > 1. || q.y > 1.) ? 1. : s.z + 1./uLifeF, s.w); }`,
+fade: `uniform float uDecay;
+void main(){ o = vec4(texture(uPrev, vUv).rgb*uDecay, 1.); }`,
+ascii: `uniform sampler2D uImg, uAtlas; uniform float uCw, uCh, uN, uMix, uTinta, uGamA;
+void main(){
+  vec2 px = vUv*uRes, cs = vec2(uCw, uCh), cell = floor(px/cs), f = fract(px/cs);
+  vec3 c = texture(uImg, (cell + .5)*cs/uRes).rgb;
+  float L = pow(clamp(lum(c)*(1. + .25*PK), 0., 1.), uGamA), idx = min(uN - 1., floor(L*uN));
+  float g = texture(uAtlas, vec2((idx + clamp(f.x, .02, .98))/uN, f.y)).r;
+  o = vec4(max(texture(uImg, vUv).rgb*uMix, g*mix(vec3(1.), tinte(c), uTinta)), 1.); }`,
 rdSim: `uniform sampler2D uState; uniform vec2 uTex; uniform float uReset, uInject;
 void main(){
   vec2 s = texture(uState, vUv).rg;
@@ -427,7 +449,41 @@ void main(){
   gl_Position = vec4(p.x*3./z/uAsp, p.y*3./z, 0., 1.);
   vC = c*(.45 + 1.6*L); }`
 };
+GEO_VS.malla = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc; uniform float uNx, uNy, uSeg, uAxis, uAsp, uAmp, uTilt, uYaw;
+out vec3 vC;
+float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
+void main(){
+  int i = gl_VertexID, seg = i/2, segs = int(uSeg);
+  float line = float(seg/segs), b = float(seg % segs + i % 2)/uSeg;
+  vec2 uv = uAxis < .5 ? vec2(b, (line + .5)/uNy) : vec2((line + .5)/uNx, b);
+  vec3 c = textureLod(uSrc, uv, 0.).rgb; float L = lum(c);
+  vec3 p = vec3((uv.x - .5)*2.*uAsp, (uv.y - .5)*2., (L - .5)*uAmp);
+  float cy = cos(uYaw), sy = sin(uYaw); p = vec3(cy*p.x + sy*p.z, p.y, -sy*p.x + cy*p.z);
+  float ct = cos(uTilt), st = sin(uTilt); p = vec3(p.x, ct*p.y - st*p.z, st*p.y + ct*p.z);
+  float z = 3. - p.z;
+  gl_Position = vec4(p.x*3./z/uAsp, p.y*3./z, 0., 1.);
+  vC = c*(.3 + 1.3*L)*.85; }`;
+GEO_VS.part = `#version 300 es
+precision highp float;
+uniform sampler2D uState, uSrc; uniform float uSide, uSize;
+out vec3 vC;
+float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
+void main(){
+  int i = gl_VertexID, side = int(uSide);
+  vec4 s = texelFetch(uState, ivec2(i % side, i / side), 0);
+  vec3 c = textureLod(uSrc, s.xy, 0.).rgb; float L = lum(c);
+  gl_Position = vec4(s.xy*2. - 1., 0., 1.);
+  gl_PointSize = uSize*(.6 + L);
+  vC = c*(.3 + 1.2*L)*sin(3.14159*clamp(s.z, 0., 1.))*.55; }`;
 const GEO_FS = {
+malla: `#version 300 es
+precision highp float; in vec3 vC; out vec4 o;
+void main(){ o = vec4(vC, 1.); }`,
+part: `#version 300 es
+precision highp float; in vec3 vC; out vec4 o;
+void main(){ vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25) discard; o = vec4(vC*(1. - d*4.), 1.); }`,
 nube: `#version 300 es
 precision highp float; in vec3 vC; out vec4 o;
 void main(){ vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25) discard; o = vec4(vC*(1. - d*2.), 1.); }`,
@@ -456,10 +512,10 @@ function use(p, U, T = {}){
     const v = U[k]; Array.isArray(v) ? gl.uniform2f(l, v[0], v[1]) : gl.uniform1f(l, v); }
   for (const k in T){ const l = k in p.loc ? p.loc[k] : (p.loc[k] = gl.getUniformLocation(p, k)); if (l === null) continue;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(k === "uHist" ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D, T[k]); gl.uniform1i(l, unit); unit++; } }
-function target(w, h, flt, wrap = gl.CLAMP_TO_EDGE){
-  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-  gl.texImage2D(gl.TEXTURE_2D, 0, flt ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, flt ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+function target(w, h, flt, wrap = gl.CLAMP_TO_EDGE, f32 = false){   // f32: estado exacto (partículas), sin filtro
+  const t = gl.createTexture(), flr = f32 ? gl.NEAREST : gl.LINEAR; gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, f32 ? gl.RGBA32F : flt ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, f32 ? gl.FLOAT : flt ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, flr); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, flr);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
   const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   return {t, f, w, h}; }
@@ -472,7 +528,7 @@ const quad = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 let R = null;
 function recursos(){
   const {W, H} = F(); if (R && R.W === W && R.H === H) return R;
-  if (R){ [R.fx[0], R.fx[1], R.tr[0], R.tr[1]].forEach(drop); gl.deleteTexture(R.src); gl.deleteTexture(R.hist); gl.deleteFramebuffer(R.histF); }
+  if (R){ [R.fx[0], R.fx[1], R.tr[0], R.tr[1], R.as].forEach(drop); gl.deleteTexture(R.src); gl.deleteTexture(R.hist); gl.deleteFramebuffer(R.histF); }
   glc.width = W; glc.height = H; srcC.width = W; srcC.height = H;
   const src = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, src);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -482,13 +538,30 @@ function recursos(){
   gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   R = {W, H, src, hist, histF: gl.createFramebuffer(), hw, hh, head: 0, fill: 0,
-    fx: [target(W, H, FLT), target(W, H, FLT)], tr: [target(W, H, FLT), target(W, H, FLT)], i: 0, rd: null, rdKey: ""};
+    fx: [target(W, H, FLT), target(W, H, FLT)], tr: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), i: 0, rd: null, rdKey: "", pt: null, ptKey: ""};
   reiniciar(); return R; }
-function reiniciar(){ if (!R) return; [...R.fx, ...R.tr].forEach(clearT); R.fill = 0; R.head = 0; R.rdReset = true; }
+function reiniciar(){ if (!R) return; [...R.fx, ...R.tr].forEach(clearT); R.fill = 0; R.head = 0; R.rdReset = true; R.ptReset = true; }
 function rdBuffers(){
   const div = 2 + Math.round(par()[0]*4), w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
   if (R.rdKey !== key){ if (R.rd) R.rd.forEach(drop); R.rd = [target(w, h, true, gl.REPEAT), target(w, h, true, gl.REPEAT)]; R.rdKey = key; R.rdI = 0; R.rdReset = true; }
   return R.rd; }
+function ptBuffers(){
+  const side = Math.round(96 + par()[0]*224), key = String(side);
+  if (R.ptKey !== key){ if (R.pt) R.pt.forEach(drop); R.pt = [target(side, side, true, gl.CLAMP_TO_EDGE, true), target(side, side, true, gl.CLAMP_TO_EDGE, true)]; R.ptKey = key; R.ptI = 0; R.ptReset = true; }
+  return R.pt; }
+// letras del panel ASCII: una tira con cada carácter de la rampa, en JetBrains Mono, en una textura
+let ATL = null, atlKey = "", atlN = 1;
+const rampa = () => [...(S.aramp.length ? S.aramp : " .#")];
+function atlas(){
+  const ch = rampa(), key = ch.join("") + "|" + S.apeso + "|" + (document.fonts.check(`${S.apeso} 72px "JetBrains Mono"`) ? 1 : 0); if (ATL && atlKey === key) return ATL;
+  const gw = 48, gh = 96, c = document.createElement("canvas"); c.width = gw*ch.length; c.height = gh; const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, c.width, gh); x.fillStyle = "#fff"; x.font = `${S.apeso} 72px "JetBrains Mono", ui-monospace, monospace`; x.textAlign = "center"; x.textBaseline = "middle";
+  ch.forEach((g, k) => x.fillText(g, k*gw + gw/2, gh/2 + 3));
+  if (!ATL) ATL = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, ATL); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  atlKey = key; atlN = ch.length; return ATL; }
 
 // ─── fuentes: fotos (imágenes) y videos (elementos <video> que se buscan cuadro por cuadro al exportar)
 let items = [], fuenteId = 0, VAUD = null;
@@ -556,6 +629,19 @@ function render(f){
     gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad();
     bindT(dst); use(P.slitscan, {...U, uHead: r.head, uFill: Math.max(1, r.fill + 1)}, {uSrc: r.src, uHist: r.hist}); quad();
     r.head = (r.head + 1) % HN; r.fill = Math.min(HN, r.fill + 1); }
+  else if (st === "malla"){
+    clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H, ny = Math.round(30 + p[0]*110), nx = Math.max(4, Math.round(ny*asp*.8)), segs = 160;
+    const M = {uNx: nx, uNy: ny, uSeg: segs, uAsp: asp, uAmp: p[1]*1.6*(1 + S.pulso*ft.low_e*.7), uTilt: -(.35 + p[2]*.55), uYaw: Math.sin(t*.3)*p[2]*.7};
+    use(P.g_malla, {...M, uAxis: 0}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, ny*segs*2);
+    use(P.g_malla, {...M, uAxis: 1}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, nx*segs*2);
+    gl.disable(gl.BLEND); }
+  else if (st === "particulas" && FLT){
+    const pt = ptBuffers(), side = pt[0].w, a = pt[R.ptI], b = pt[1 - R.ptI]; R.ptI = 1 - R.ptI;
+    bindT(b); use(P.pSim, {...U, uReset: R.ptReset ? 1 : 0, uLifeF: 60}, {uSrc: r.src, uState: a.t}); quad(); R.ptReset = false;
+    bindT(dst); use(P.fade, {uDecay: .9}, {uPrev: prev.t}); quad();
+    gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    use(P.g_part, {uSide: side, uSize: 2.2*W/1080}, {uSrc: r.src, uState: b.t}); gl.drawArrays(gl.POINTS, 0, side*side);
+    gl.disable(gl.BLEND); }
   else if (st === "nube" || st === "lineas"){
     clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H;
     if (st === "nube"){ const cols = Math.round(60 + p[0]*220), rows = Math.round(cols*H/W);
@@ -573,7 +659,11 @@ function render(f){
   else { bindT(dst); use(P[st] && st !== "rd" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   const tp = r.tr[r.i], td = r.tr[1 - r.i];   // estela: va y vuelve con el mismo índice que fx
   bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: dst.t, uPrev: tp.t}); quad();
-  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0}, {uImg: td.t}); quad();
+  let img = td;
+  if (S.ascii !== "off"){   // panel ASCII: cada celda toma el brillo del estilo y elige su carácter
+    const fs = S.afs*W/1080, at = atlas(); bindT(r.as);
+    use(P.ascii, {...U, uCw: fs*.6, uCh: fs*1.2, uN: atlN, uMix: S.ascii === "sobre" ? S.amix : 0, uTinta: S.color === "color" ? .8 : 0, uGamA: S.agam}, {uImg: td.t, uAtlas: at}); quad(); img = r.as; }
+  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0}, {uImg: img.t}); quad();
   componer(f);
 }
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
@@ -709,8 +799,8 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
 
 // ─── controles
-const num = ["velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => ["estela","vol","esc","velo"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
+const fmtOut = (k, v) => ["estela","vol","esc","velo","amix"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
     b.onclick = () => { S.estilo = k; reiniciar(); sync(); }; box.append(b); } }
@@ -719,11 +809,15 @@ function sync(){
   const sty = STYLES[S.estilo], p = par();
   [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("p" + (i + 1)).value = p[i]; $("p" + (i + 1) + "O").textContent = Math.round(p[i]*100); });
   if (S.estilo === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, p[1]*3.99|0)];
-  $("styDesc").textContent = sty.d + (S.estilo === "rd" && !FLT ? " (Este navegador no puede simularla: falta textura de punto flotante.)" : "");
-  $("styDesc").className = "hint" + (S.estilo === "rd" && !FLT ? " warn" : "");
+  const sinF = (S.estilo === "rd" || S.estilo === "particulas") && !FLT;
+  $("styDesc").textContent = sty.d + (sinF ? " (Este navegador no puede simularlo: falta textura de punto flotante.)" : "");
+  $("styDesc").className = "hint" + (sinF ? " warn" : "");
   document.querySelectorAll("#estilos button").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === S.estilo));
   [["#color button", "c", "color"], ["#orden button", "o", "orden"], ["#musica button", "m", "musica"], ["#fmt button", "f", "fmt"], ["#ajuste button[data-a]", "a", "ajuste"]]
     .forEach(([sel, at, k]) => document.querySelectorAll(sel).forEach(b => b.setAttribute("aria-pressed", b.dataset[at] === S[k])));
+  document.querySelectorAll("#asciiSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.x === S.ascii));
+  $("asciiBox").hidden = S.ascii === "off"; $("amixRow").hidden = S.ascii !== "sobre";
+  const aopt = [...$("arampSel").options].find(o => o.value === S.aramp); $("arampSel").value = aopt ? S.aramp : "custom"; $("arampRow").hidden = !!aopt; $("aramp").value = S.aramp;
   $("inv").checked = S.inv; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur === "video" && !!vid0();
   $("songBox").hidden = S.musica !== "cancion"; $("songOff").max = SONG ? Math.max(1, Math.floor(SONG.duration - 1)) : 1; $("songOff").value = S.songOff; $("songOffO").textContent = S.songOff.toFixed(2) + " s";
@@ -741,6 +835,10 @@ on("#fmt button", "f", "fmt", () => { _lc = null; reiniciar(); }); on("#ajuste b
 const centrar = () => { S.esc = 1; S.px = 0; S.py = 0; sync(); }; $("centrar").onclick = centrar;
 num.forEach(k => $(k).oninput = e => { S[k] = +e.target.value; sync(); });
 [0, 1, 2].forEach(i => $("p" + (i + 1)).oninput = e => { par()[i] = +e.target.value; sync(); });
+document.querySelectorAll("#asciiSeg button").forEach(b => b.onclick = () => { S.ascii = b.dataset.x; sync(); });
+$("arampSel").onchange = e => { if (e.target.value !== "custom") S.aramp = e.target.value; else $("arampRow").hidden = false; sync(); };
+$("aramp").oninput = e => { S.aramp = e.target.value; save(); };
+$("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
 $("styReset").onclick = () => { S.par[S.estilo] = STYLES[S.estilo].v.slice(); reiniciar(); sync(); };
 $("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
 $("bpm").onchange = e => { S.bpm = Math.min(220, Math.max(50, +e.target.value || 96)); sync(); };
@@ -760,7 +858,7 @@ cv.addEventListener("dblclick", centrar);
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
-const LOOK = ["estilo","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
+const LOOK = ["ascii","afs","apeso","aramp","agam","amix","estilo","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
 $("psave").onclick = () => { const n = $("pname").value.trim() || `${STYLES[S.estilo].n} ${S.fmt}`, s = {par: {[S.estilo]: par().slice()}};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
 function renderMios(){ const box = $("mine"); box.innerHTML = "";
@@ -889,6 +987,6 @@ $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
 
 // ─── arranque
 botonesEstilo();
-document.fonts.load(`400 18px "JetBrains Mono"`).catch(() => {}).finally(() => { cargarMuestra(); requestAnimationFrame(loop); });
+Promise.all([400, S.apeso].map(w => document.fonts.load(`${w} 72px "JetBrains Mono"`))).catch(() => {}).finally(() => { cargarMuestra(); requestAnimationFrame(loop); });
 </script>
 </body></html>
