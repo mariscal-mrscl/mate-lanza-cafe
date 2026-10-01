@@ -133,6 +133,21 @@ details.log[open] summary::before{content:"− "}
     </div>
 
     <div class="grp">
+      <h2>Clip</h2>
+      <div class="row"><label for="vel">Velocidad</label><input type="range" id="vel" min="0.25" max="3" step="0.05"><output id="velO"></output></div>
+      <div class="seg" id="velSeg"><button data-v="0.25">¼</button><button data-v="0.5">½</button><button data-v="1">×1</button><button data-v="1.5">×1.5</button><button data-v="2">×2</button></div>
+      <div class="row"><label for="vin">Entrada</label><input type="range" id="vin" min="0" max="1" step="0.005"><output id="vinO"></output></div>
+      <div class="row"><label for="vout">Salida</label><input type="range" id="vout" min="0" max="1" step="0.005"><output id="voutO"></output></div>
+      <h3>Cuando el clip termina</h3>
+      <div class="seg" id="loopSeg"><button data-l="repetir">Repetir</button><button data-l="idavuelta">Ida y vuelta</button><button data-l="congelar">Congelar</button></div>
+      <h3>Duración de la pieza</h3>
+      <div class="seg" id="durSeg"><button data-d="video">Largo del clip</button><button data-d="segundos">Segundos</button><button data-d="compases">Compases</button></div>
+      <div class="row" id="vueltasRow"><label for="vueltas">Vueltas</label><input type="range" id="vueltas" min="1" max="8" step="1"><output id="vueltasO"></output></div>
+      <div class="row" id="segsRow"><label for="segs">Segundos</label><input type="range" id="segs" min="2" max="60" step="0.5"><output id="segsO"></output></div>
+      <p class="hint" id="clipHint"></p>
+    </div>
+
+    <div class="grp">
       <h2>Capas</h2>
       <div class="seg"><button class="main" id="btnExplorar">Explorar variaciones</button><button id="recG" aria-pressed="false" title="Tecla G">● Grabar gestos</button></div>
       <div class="toma" id="recBox" hidden>
@@ -239,7 +254,7 @@ details.log[open] summary::before{content:"− "}
       <div class="row two"><label for="frase">Frase</label>
         <select id="frase"><option value="lanza">LANZA (entra lento, rompe en semicorcheas, remate)</option><option value="semi">Semicorcheas</option><option value="corch">Corcheas</option><option value="negra">Negras</option><option value="acelera">Acelera (negras → semicorcheas)</option><option value="compas">Un corte por compás</option><option value="nada">Sin cortes</option></select></div>
       <div class="row two"><label for="dur">Duración</label>
-        <select id="dur"><option value="compases">Por compases</option><option value="video">Lo que dura el primer video</option></select></div>
+        <select id="dur"><option value="compases">Por compases</option><option value="video">Largo del primer video (× vueltas)</option><option value="segundos">Segundos</option></select></div>
       <div class="row" id="compasesRow"><label for="compases">Compases</label><input type="range" id="compases" min="1" max="24" step="1"><output id="compasesO"></output></div>
       <p class="hint" id="tiempoHint"></p>
       <h3>Arranque del efecto</h3>
@@ -379,7 +394,7 @@ const STYLES = {
 };
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
-  bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
+  bpm:96, frase:"lanza", compases:6, dur:"compases", vel:1, vin:0, vout:1, loopModo:"repetir", vueltas:1, segs:12, orden:"cargado", semilla:1,
   musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
@@ -760,15 +775,24 @@ function orden(n){ const N = items.length; if (!N) return [];
       if (N > 1 && a[0] === prev) a.push(a.shift()); a.forEach(i => out.push(i)); prev = out[out.length - 1]; } return out.slice(0, n).map(i => items[i]); }
   const off = (S.semilla - 1) % N; return Array.from({length: n}, (_, k) => items[(k + off) % N]); }
 let TL = {T: [], body: 1, land: 0, total: 1};
+// clip: velocidad, entrada y salida (fracción del largo de cada video) y qué pasa al terminar
+const enSeg = v => { const d = vid0() ? vid0().el.duration || 0 : 0; return d ? (v*d).toFixed(2) + " s" : Math.round(v*100) + "%"; };
+const tramoClip = d => { const a = Math.min(S.vin, S.vout - .005)*d, b = Math.max(S.vout, S.vin + .005)*d; return [a, Math.max(1/FPS, b - a)]; };
+const largoClip = it => tramoClip(it.el.duration || 1)[1]/S.vel;   // segundos que dura una pasada del clip en la pieza
+function mapaClip(d, e){ const [a, L] = tramoClip(d), m = S.loopModo;   // e: segundos de video corridos desde la entrada → tiempo en el archivo
+  let t; if (m === "congelar") t = Math.min(e, L - .5/FPS); else if (m === "idavuelta"){ const q = e % (2*L); t = q < L ? q : 2*L - q; } else t = e % L;
+  return Math.min(d - .5/FPS, a + Math.max(0, t)); }
+function dirClip(d, e){ const L = tramoClip(d)[1]; return S.loopModo === "congelar" ? (e < L ? 1 : 0) : S.loopModo === "idavuelta" ? (e % (2*L) < L ? 1 : -1) : 1; }
 function timeline(){
-  const v = vid0(), body = S.dur === "video" && v ? Math.max(12, Math.round(v.el.duration*FPS)) : Math.round(S.compases*4*beatF());
+  const v = vid0(), body = S.dur === "video" && v ? Math.max(12, Math.round(largoClip(v)*S.vueltas*FPS)) : S.dur === "segundos" ? Math.max(12, Math.round(S.segs*FPS)) : Math.round(S.compases*4*beatF());
   const cs = cortes(body), ord = orden(cs.length), cur = new Map(), T = [];
   cs.forEach((f0, k) => { const f1 = k + 1 < cs.length ? cs[k + 1] : body, it = ord[k]; let vt0 = 0;
-    if (it && it.vid){ vt0 = cur.get(it) || 0; cur.set(it, vt0 + (f1 - f0)/FPS); }
+    if (it && it.vid){ vt0 = cur.get(it) || 0; cur.set(it, vt0 + (f1 - f0)/FPS*S.vel); }
     T.push({f0, f1, it, vt0, k}); });
   TL = {T, body, land: S.cierre ? CIERRE : 0, total: body + (S.cierre ? CIERRE : 0)}; return TL; }
 function segAt(f){ const T = TL.T; let lo = 0, hi = T.length - 1; while (lo < hi){ const m = (lo + hi + 1) >> 1; if (T[m].f0 <= f) lo = m; else hi = m - 1; } return T[lo]; }
-const vtDe = (seg, f) => { const d = seg.it.el.duration || 1; return (seg.vt0 + (Math.min(f, TL.body - 1) - seg.f0 + .5)/FPS) % d; };
+const corrido = (seg, f) => seg.vt0 + (Math.min(f, TL.body - 1) - seg.f0 + .5)/FPS*S.vel;
+const vtDe = (seg, f) => mapaClip(seg.it.el.duration || 1, corrido(seg, f));
 
 // ─── un cuadro
 const Z = {low:0, high:0, low_e:0, high_e:0};
@@ -1101,8 +1125,9 @@ async function prepExacto(f){ if (f >= TL.body) return; const seg = segAt(f); if
 function prepVivo(f, corriendo){
   const seg = f < TL.body ? segAt(f) : null, act = seg && seg.it && seg.it.vid ? seg.it.el : null;
   items.forEach(it => { if (it.vid && it.el !== act && !it.el.paused) it.el.pause(); });
-  if (!act) return; const t = vtDe(seg, f);
-  if (corriendo){ if (act.paused) { act.currentTime = t; act.play().catch(() => {}); } else if (Math.abs(act.currentTime - t) > .25) act.currentTime = t; }
+  if (!act) return; const t = vtDe(seg, f), dir = dirClip(act.duration || 1, corrido(seg, f));
+  if (corriendo && dir > 0){ if (act.playbackRate !== S.vel) act.playbackRate = S.vel;   // hacia adelante corre solo; hacia atrás o congelado se busca cuadro a cuadro
+    if (act.paused) { act.currentTime = t; act.play().catch(() => {}); } else if (Math.abs(act.currentTime - t) > .25*Math.max(1, S.vel)) act.currentTime = t; }
   else { if (!act.paused) act.pause(); if (!act.seeking && Math.abs(act.currentTime - t) > .5/FPS) act.currentTime = t; } }
 
 // ─── audio: pulso interno sobre los cortes, una canción o el audio del video; de ahí salen graves y agudos por cuadro
@@ -1145,6 +1170,15 @@ function tramo(SRC, off){
   for (let c=0; c<2; c++){ const src = SRC.getChannelData(Math.min(c, SRC.numberOfChannels - 1)), d = out.getChannelData(c);
     for (let i=0; i<n; i++){ const k = o + i; d[i] = k < src.length ? src[k] : 0; } for (let i=0; i<240; i++) d[i] *= i/240; }
   fadeOut(out, .6); return out; }
+function tramoVideo(SRC){   // el audio del video sigue al clip: velocidad (cambia el tono, como cinta), entrada y salida, repetir, ida y vuelta o congelar (silencio)
+  const sr = SRC.sampleRate, n = Math.ceil(TL.total/FPS*sr), out = new AudioBuffer({length: n, numberOfChannels: 2, sampleRate: sr}), d = SRC.duration, body = TL.body/FPS;
+  const [, L] = tramoClip(d);
+  for (let c=0; c<2; c++){ const src = SRC.getChannelData(Math.min(c, SRC.numberOfChannels - 1)), o = out.getChannelData(c);
+    for (let i=0; i<n; i++){ const tau = i/sr; if (tau >= body) break; const e = tau*S.vel;
+      if (S.loopModo === "congelar" && e >= L) break; const x = mapaClip(d, e)*sr, k = Math.floor(x), fr = x - k;
+      o[i] = k + 1 < src.length ? src[k]*(1 - fr) + src[k + 1]*fr : 0; }
+    for (let i=0; i<240; i++) o[i] *= i/240; }
+  fadeOut(out, .6); return out; }
 async function bandas(buf){
   const band = async (type, fq, q) => { const oc = new OfflineAudioContext(1, buf.length, buf.sampleRate), s = oc.createBufferSource(); s.buffer = buf; let node = s;
     for (let k=0; k<2; k++){ const b = oc.createBiquadFilter(); b.type = type; b.frequency.value = fq; if (q) b.Q.value = q; node.connect(b); node = b; } node.connect(oc.destination); s.start(); return (await oc.startRendering()).getChannelData(0); };
@@ -1156,11 +1190,11 @@ async function bandas(buf){
   for (let f=0; f<nf; f++){ el = Math.max(L[0][f], el*.8); eh = Math.max(L[1][f], eh*.6); out.push({low: L[0][f], high: L[1][f], low_e: el, high_e: eh}); }
   return out; }
 async function rearmarAudio(){
-  const key = [S.musica, fuenteId, TL.T.map(s => s.f0).join(","), TL.total, S.cierre, S.bpm, S.songOff, songName].join("|");
+  const key = [S.musica, fuenteId, S.vel, S.vin, S.vout, S.loopModo, TL.T.map(s => s.f0).join(","), TL.total, S.cierre, S.bpm, S.songOff, songName].join("|");
   if (key === audioKey) return; audioKey = key; const mine = Symbol(); audioBusy = mine;
   await new Promise(r => setTimeout(r, 250)); if (audioBusy !== mine) return;
   try {
-    const buf = S.musica === "video" && VAUD ? tramo(VAUD, 0) : S.musica === "cancion" && SONG ? tramo(SONG, S.songOff) : await pulso();
+    const buf = S.musica === "video" && VAUD ? tramoVideo(VAUD) : S.musica === "cancion" && SONG ? tramo(SONG, S.songOff) : await pulso();
     if (audioBusy !== mine) return;
     const ft = await bandas(buf); if (audioBusy !== mine) return;
     FEAT = ft; PLAY = S.musica === "nada" ? null : buf; stopAudio(); audioListo = key;
@@ -1262,8 +1296,8 @@ document.querySelectorAll("#exAmp button").forEach(b => b.onclick = () => { EX.a
 document.querySelector('#exAmp [data-x="medio"]').setAttribute("aria-pressed", "true");
 
 // ─── controles
-const num = ["desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vel","vin","vout","vueltas","segs","vol","esc","px","py"];
+const fmtOut = (k, v) => k === "vel" ? "×" + (+v).toFixed(2) : k === "vin" || k === "vout" ? enSeg(v) : k === "vueltas" ? "×" + v : k === "segs" ? (+v).toFixed(1) + " s" : k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
     b.onclick = () => { recEstilo(k); if (R && R.L[S.sel] && !REC.on){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
@@ -1304,13 +1338,17 @@ function sync(){
   cv.style.cursor = PIN.modo !== "off" && !sjOff ? "crosshair" : "";
   document.querySelectorAll("#arrSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.arr === S.arranque)); $("preRow").hidden = S.arranque !== "andando";
   $("libre").checked = S.libre; $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
-  $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur === "video" && !!vid0();
+  $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur !== "compases";
+  document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === S.dur)); document.querySelectorAll("#loopSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === S.loopModo));
+  document.querySelectorAll("#velSeg button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === +S.vel));
+  $("vueltasRow").hidden = S.dur !== "video"; $("segsRow").hidden = S.dur !== "segundos"; $("durSeg").querySelector('[data-d="video"]').disabled = !vid0();
   $("songBox").hidden = S.musica !== "cancion"; $("songOff").max = SONG ? Math.max(1, Math.floor(SONG.duration - 1)) : 1; $("songOff").value = S.songOff; $("songOffO").textContent = S.songOff.toFixed(2) + " s";
   document.querySelector('#musica [data-m="video"]').disabled = !VAUD;
   timeline();
   const b = beatF(); $("bpmO").textContent = (b).toFixed(2).replace(/\.?0+$/, "") + " c";
   $("tiempoHint").textContent = `A ${S.bpm} BPM la negra dura ${b.toFixed(2).replace(/\.?0+$/, "")} cuadros y el compás ${(b*4/FPS).toFixed(2)} s. ${TL.T.length} corte${TL.T.length === 1 ? "" : "s"} en ${(TL.body/FPS).toFixed(2)} s${S.cierre ? " más 3 s de cierre" : ""}.`;
-  $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = S.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ");
+  $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; const v0 = vid0();
+  $("clipHint").textContent = v0 ? `El clip usa ${tramoClip(v0.el.duration || 1)[1].toFixed(2)} s del video; a ×${(+S.vel).toFixed(2)} cada pasada dura ${largoClip(v0).toFixed(2)} s. La pieza dura ${(TL.body/FPS).toFixed(2)} s${S.cierre ? " más el cierre" : ""}: ${(TL.body/FPS/largoClip(v0)).toFixed(1).replace(/\.0$/, "")} pasada(s). Para llevar un clip de 4 s a 12 s: Largo del clip × 3 vueltas, o Segundos = 12.` : "Velocidad, entrada, salida y repetición se aplican a los videos. Con fotos solo cuenta la duración."; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = S.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ");
   if (actx && master) master.gain.value = S.vol;
   $("json").value = JSON.stringify(ajustes()); save(); renderMios(); rearmarAudio(); }
 function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: S.capas.map((c, k) => c.on ? {capa: k + 1, estilo: c.estilo, valores: parCapa(k, c.estilo)} : null).filter(Boolean), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
@@ -1417,7 +1455,12 @@ $("capaGolpe").onchange = e => { cap().golpe = e.target.checked; sync(); };
 $("luzReset").onclick = () => { Object.assign(S, {expo: 0, altas: 0, con: 1, neg: 0, gam: 1}); sync(); };
 $("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("liviana").onchange = e => { S.liviana = e.target.checked; lastF = -1e9; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
 $("bpm").onchange = e => { S.bpm = Math.min(220, Math.max(50, +e.target.value || 96)); sync(); };
-$("frase").onchange = e => { S.frase = e.target.value; sync(); }; $("dur").onchange = e => { S.dur = e.target.value; sync(); };
+$("frase").onchange = e => { S.frase = e.target.value; sync(); };
+document.querySelectorAll("#durSeg button").forEach(b => b.onclick = () => { S.dur = b.dataset.d; sync(); });
+document.querySelectorAll("#loopSeg button").forEach(b => b.onclick = () => { S.loopModo = b.dataset.l; sync(); });
+document.querySelectorAll("#velSeg button").forEach(b => b.onclick = () => { S.vel = +b.dataset.v; sync(); });
+$("vin").addEventListener("input", () => { if (S.vout < S.vin + .02){ S.vout = Math.min(1, S.vin + .02); sync(); } });
+$("vout").addEventListener("input", () => { if (S.vout < S.vin + .02){ S.vin = Math.max(0, S.vout - .02); sync(); } }); $("dur").onchange = e => { S.dur = e.target.value; sync(); };
 $("songOff").oninput = e => { S.songOff = +e.target.value; sync(); };
 document.querySelectorAll("#songBox [data-n]").forEach(b => b.onclick = () => { S.songOff = Math.max(0, +(S.songOff + (+b.dataset.n)*60/S.bpm).toFixed(3)); sync(); });
 $("btnSong").onclick = () => $("songFile").click(); $("songFile").onchange = e => { if (e.target.files[0]) cargarCancion(e.target.files[0]); };
@@ -1439,7 +1482,7 @@ cv.addEventListener("dblclick", () => { if (PIN.modo === "off") centrar(); });
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
-const LOOK = ["duoA","duoB","arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
+const LOOK = ["duoA","duoB","arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt","vel","vin","vout","loopModo","dur","vueltas","segs"];
 $("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname").value.trim() || `${on.map(c => STYLES[c.estilo].n).join(" + ")} ${S.fmt}`;
   S.capas.forEach((c, k) => { if (c.on) parCapa(k, c.estilo); }); const s = {capas: JSON.parse(JSON.stringify(S.capas))};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
@@ -1597,7 +1640,7 @@ $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
   catch(e){ $("json").focus(); $("json").select(); $("copy").textContent = "Seleccionado: copialo"; } };
 
 // ─── pestañas del panel: cada sección en su lugar, sin scroll largo (la elegida se recuerda)
-const TABS = {Fuente: "material", Capas: "estilo", ASCII: "estilo", Sujeto: "sujeto", "Terminación": "luz", Tiempo: "ritmo", "Música": "ritmo", Encuadre: "salida", "Mis presets": "salida", Salida: "salida"};
+const TABS = {Fuente: "material", Clip: "material", Capas: "estilo", ASCII: "estilo", Sujeto: "sujeto", "Terminación": "luz", Tiempo: "ritmo", "Música": "ritmo", Encuadre: "salida", "Mis presets": "salida", Salida: "salida"};
 const grupos = [...document.querySelectorAll(".panel > .grp")].map(g => { const h = g.querySelector("h2, summary"); g.dataset.tab = h && TABS[h.textContent.trim()] || "salida"; return g; });
 let TAB = "estilo"; try { TAB = localStorage.getItem("lanzaTdLabTab") || TAB; } catch(e) {}
 function verTab(t){ TAB = t; try { localStorage.setItem("lanzaTdLabTab", t); } catch(e) {} grupos.forEach(g => g.hidden = g.dataset.tab !== t);
