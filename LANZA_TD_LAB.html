@@ -28,6 +28,11 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .beat i{width:8px;height:8px;border-radius:50%;background:var(--line)}
 .beat i.on{background:var(--on)}
 .panel{overflow:auto;min-height:0;background:var(--panel)}
+.tabs{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0 2px;background:var(--panel);border-bottom:1px solid var(--line);padding:8px 12px 0}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:8px 2px 9px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--on);border-bottom-color:var(--on)}.tabs button:hover{color:var(--fg)}
+.tabs b{font-weight:500;color:var(--soft);margin-left:2px}
+@media (max-width:480px){.tabs{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .grp{padding:14px 18px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px}
 .grp h2{margin:0;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
 .grp h3{margin:2px 0 0;font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
@@ -87,6 +92,9 @@ details.log[open] summary::before{content:"− "}
   </section>
 
   <aside class="panel" aria-label="Controles">
+    <nav class="tabs" id="tabs" aria-label="Secciones" role="tablist">
+      <button data-tab="material" role="tab">Material</button><button data-tab="estilo" role="tab">Estilo</button><button data-tab="sujeto" role="tab">Sujeto</button><button data-tab="luz" role="tab">Luz</button><button data-tab="ritmo" role="tab">Ritmo</button><button data-tab="salida" role="tab">Salida</button>
+    </nav>
     <div class="grp">
       <h2>Fuente</h2>
       <div class="seg">
@@ -226,6 +234,7 @@ details.log[open] summary::before{content:"− "}
       <div class="row"><label for="px">Horizontal</label><input type="range" id="px" min="-1" max="1" step="0.01"><output id="pxO"></output></div>
       <div class="row"><label for="py">Vertical</label><input type="range" id="py" min="-1" max="1" step="0.01"><output id="pyO"></output></div>
       <p class="hint">Sobre el monitor: arrastrá para mover, rueda para escalar, doble clic centra.</p>
+      <label class="chk"><input type="checkbox" id="liviana"> Vista previa liviana (media resolución: corre más fluido; el MP4 sale siempre completo)</label>
       <label class="chk"><input type="checkbox" id="marca"> Logo arriba y LANZAPOST.COM</label>
       <div class="row"><label for="velo">Velo</label><input type="range" id="velo" min="0" max="1" step="0.05"><output id="veloO"></output></div>
       <p class="hint">Velo: oscurece las franjas del logo y del pie para que se lean sobre imágenes claras. En 0 la imagen queda entera; los logos llevan una sombra suave igual.</p>
@@ -317,7 +326,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -357,7 +366,7 @@ precision highp sampler2DArray;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uSrc, uPrev;
 uniform vec2 uRes;
-uniform float uT, uF, uLow, uHigh, uCut, uP1, uP2, uP3, uPulso, uSeed;
+uniform float uT, uF, uLow, uHigh, uCut, uP1, uP2, uP3, uPulso, uSeed, uAnchoF;
 ${LIB}
 vec2 asp(){ return vec2(uRes.x/uRes.y, 1.); }
 vec3 tinte(vec3 s){ return s/max(lum(s), .25); }
@@ -390,7 +399,7 @@ void main(){
   float l0 = mod(uHead - d0 + ${HN}., ${HN}.), l1 = mod(uHead - d0 - 1. + ${HN}., ${HN}.);
   o = vec4(mix(texture(uHist, vec3(vUv, l0)).rgb, texture(uHist, vec3(vUv, l1)).rgb, d - d0), 1.); }`,
 trama: `void main(){
-  float cell = 6. + uP1*42., an = uP2*1.5708;
+  float cell = (6. + uP1*42.)*uRes.x/uAnchoF, an = uP2*1.5708;
   mat2 R = mat2(cos(an), sin(an), -sin(an), cos(an));
   vec2 p = R*(vUv*uRes), g = (floor(p/cell) + .5)*cell;
   vec3 s = texture(uSrc, (transpose(R)*g)/uRes).rgb; float L = lum(s);
@@ -619,10 +628,11 @@ const quad = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 // recursos que dependen del tamaño del formato; cada capa tiene su propia memoria (feedback, slit-scan, simulaciones)
 let R = null;
+const escPrev = () => S.liviana && !exportando ? .5 : 1;   // vista previa liviana: media resolución (el MP4 sale completo)
 function recursos(){
-  const {W, H} = F(); if (R && R.W === W && R.H === H) return R;
+  const fm = F(), e = escPrev(), W = Math.round(fm.W*e), H = Math.round(fm.H*e); if (R && R.W === W && R.H === H) return R;
   if (R){ [R.tr[0], R.tr[1], R.mx[0], R.mx[1], R.as, R.sj].forEach(drop); if (R.mk) gl.deleteTexture(R.mk); R.L.forEach(soltarCapa); gl.deleteTexture(R.src); }
-  glc.width = W; glc.height = H; srcC.width = W; srcC.height = H;
+  glc.width = W; glc.height = H; srcC.width = W; srcC.height = H; srcX.setTransform(e, 0, 0, e, 0, 0);
   const src = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, src);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -642,7 +652,7 @@ function histDe(L){
     L.histF = gl.createFramebuffer(); L.fill = 0; L.head = 0; }
   return L.hist; }
 function rdBuffers(L, p){
-  const div = 2 + Math.round(p[0]*4), w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
+  const div = (2 + Math.round(p[0]*4))*R.W/F().W, w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
   if (L.rdKey !== key){ if (L.rd) L.rd.forEach(drop); L.rd = [target(w, h, true, gl.REPEAT), target(w, h, true, gl.REPEAT)]; L.rdKey = key; L.rdI = 0; L.rdReset = true; }
   return L.rd; }
 function ptBuffers(L, p){
@@ -717,8 +727,12 @@ async function calentar(f, exacto = false){   // vacía la memoria y, si arranca
   finally { lastF = f - 1; CAL = false; } }
 function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
   const e = Math.exp(-(f % beatF())/3); return {low_e: e, high_e: e*.5}; }
+function claveFuente(f){   // qué hay en la fuente: si no cambió, no se vuelve a dibujar ni a subir
+  const base = [fuenteId, S.fmt, S.ajuste, S.esc, S.px, S.py, R && R.W].join("|");
+  if (f >= TL.body) return base + "|logo|" + logoImg.complete; const seg = segAt(f); if (!seg || !seg.it) return base + "|nada";
+  const it = seg.it; return base + "|" + items.indexOf(it) + (it.vid ? "|" + it.el.currentTime.toFixed(3) + "|" + it.el.readyState : ""); }
 function fuente(f){
-  const {W, H} = F(); srcX.fillStyle = "#000"; srcX.fillRect(0, 0, W, H);
+  const {W, H} = F(); if (R) R.srcKey = ""; srcX.fillStyle = "#000"; srcX.fillRect(0, 0, W, H);
   if (f >= TL.body){ srcX.drawImage(logoCanvas(), 0, 0); return; }
   const seg = segAt(f); if (!seg || !seg.it) return; const it = seg.it, el = it.el;
   if (it.vid && el.readyState < 2) return;
@@ -771,13 +785,13 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
   else { bindT(dst); use(P[st] && st !== "rd" && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   return dst; }
 function render(f, pre = false){
-  if (!glOk) return; const r = recursos(), {W, H} = r;
-  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  if (!glOk) return; const r = recursos(), {W, H} = r, fm = F();
+  if (cv.width !== fm.W || cv.height !== fm.H){ cv.width = fm.W; cv.height = fm.H; }
   if (!pre && salto(f)) reiniciar(); lastF = f;   // si la compu no llega y saltea algunos cuadros, la memoria sigue
-  fuente(f);
-  gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC);
+  const sk = claveFuente(f); if (sk !== r.srcKey){ fuente(f); r.srcKey = sk;
+    gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC); }
   const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
-  const base = {uRes: [W, H], uT: f/FPS, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
+  const base = {uRes: [W, H], uAnchoF: fm.W, uT: f/FPS, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
     uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
   // capa 1 es la base; las otras se mezclan encima con su modo y opacidad
   let acc = capaRender(0, S.capas[0].estilo, f, base, ft, seg, inC), m = 0;
@@ -801,7 +815,7 @@ function render(f, pre = false){
 }
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
   const fm = F(), {W, H} = fm, ink = S.inv ? "#000" : "#fff", inC = f >= TL.body;
-  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.drawImage(glc, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.imageSmoothingQuality = "high"; ctx.drawImage(glc, 0, 0, W, H);
   if (S.sjModo !== "off" && !inC && (S.sjVer || PIN.modo !== "off") && MK.width > 1){ ctx.globalAlpha = .45; ctx.globalCompositeOperation = "lighter"; ctx.drawImage(MK, 0, 0, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; }
   if (S.marca && S.velo > 0){ const g = ctx.createLinearGradient(0, 0, 0, H), sh = S.inv ? "255,255,255" : "0,0,0";   // velo opcional detrás de logo y pie
     fm.mask.forEach(([y, a]) => g.addColorStop(Math.min(1, y/H), `rgba(${sh},${((1 - a)*S.velo).toFixed(3)})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -983,7 +997,7 @@ async function seguirTrazo(t){
         if (++hecho % 12 === 0){ $("sjBar").style.width = (100*hecho/n).toFixed(1) + "%"; sjHint(`Siguiendo el trazo: ${hecho} de ${n} cuadros.`); await tick(); } } }
     t.trk = {f0: c0, dx, dy}; }
   finally { SJ.corriendo = false; playing = playAntes; lastF = -1e9; $("sjProg").hidden = true; sjHint(); } }
-document.querySelectorAll("#sjModo [data-s]").forEach(b => b.onclick = () => { S.sjModo = b.dataset.s; if (S.sjModo !== "off" && !S.sj) S.sj = 1; sync(); });
+document.querySelectorAll("#sjModo [data-s]").forEach(b => b.onclick = () => { S.sjModo = b.dataset.s; if (S.sjModo !== "off" && !S.sj) S.sj = 1; sync(); verTab(TAB); });
 document.querySelectorAll("#sjZona [data-z]").forEach(b => b.onclick = () => { S.sjZona = b.dataset.z; sync(); });
 document.querySelectorAll("#sjOtro [data-w]").forEach(b => b.onclick = () => { S.sjOtro = b.dataset.w; sync(); });
 document.querySelectorAll("#pinSeg [data-b]").forEach(b => b.onclick = () => { PIN.modo = b.dataset.b; sync(); });
@@ -1147,7 +1161,7 @@ function sync(){
   if (!SJ.corriendo) sjHint(); if (["ia", "pro", "mov"].includes(S.sjModo)) analizarSujeto();
   cv.style.cursor = PIN.modo !== "off" && !sjOff ? "crosshair" : "";
   document.querySelectorAll("#arrSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.arr === S.arranque)); $("preRow").hidden = S.arranque !== "andando";
-  $("inv").checked = S.inv; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
+  $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur === "video" && !!vid0();
   $("songBox").hidden = S.musica !== "cancion"; $("songOff").max = SONG ? Math.max(1, Math.floor(SONG.duration - 1)) : 1; $("songOff").value = S.songOff; $("songOffO").textContent = S.songOff.toFixed(2) + " s";
   document.querySelector('#musica [data-m="video"]').disabled = !VAUD;
@@ -1176,7 +1190,7 @@ $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
 $("capaOp").oninput = e => { cap().op = +e.target.value; sync(); };
 $("capaGolpe").onchange = e => { cap().golpe = e.target.checked; sync(); };
 $("luzReset").onclick = () => { Object.assign(S, {expo: 0, altas: 0, con: 1, neg: 0, gam: 1}); sync(); };
-$("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
+$("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("liviana").onchange = e => { S.liviana = e.target.checked; lastF = -1e9; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
 $("bpm").onchange = e => { S.bpm = Math.min(220, Math.max(50, +e.target.value || 96)); sync(); };
 $("frase").onchange = e => { S.frase = e.target.value; sync(); }; $("dur").onchange = e => { S.dur = e.target.value; sync(); };
 $("songOff").oninput = e => { S.songOff = +e.target.value; sync(); };
@@ -1330,6 +1344,17 @@ $("rec").onclick = () => {
 $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
   try { await navigator.clipboard.writeText(t); $("copy").textContent = "Copiado"; setTimeout(() => $("copy").textContent = "Copiar ajustes", 1500); }
   catch(e){ $("json").focus(); $("json").select(); $("copy").textContent = "Seleccionado: copialo"; } };
+
+// ─── pestañas del panel: cada sección en su lugar, sin scroll largo (la elegida se recuerda)
+const TABS = {Fuente: "material", Capas: "estilo", ASCII: "estilo", Sujeto: "sujeto", "Terminación": "luz", Tiempo: "ritmo", "Música": "ritmo", Encuadre: "salida", "Mis presets": "salida", Salida: "salida"};
+const grupos = [...document.querySelectorAll(".panel > .grp")].map(g => { const h = g.querySelector("h2, summary"); g.dataset.tab = h && TABS[h.textContent.trim()] || "salida"; return g; });
+let TAB = "estilo"; try { TAB = localStorage.getItem("lanzaTdLabTab") || TAB; } catch(e) {}
+function verTab(t){ TAB = t; try { localStorage.setItem("lanzaTdLabTab", t); } catch(e) {} grupos.forEach(g => g.hidden = g.dataset.tab !== t);
+  document.querySelectorAll("#tabs button").forEach(b => { b.setAttribute("aria-selected", b.dataset.tab === t);
+    b.innerHTML = {material: "Material", estilo: "Estilo", sujeto: "Sujeto" + (S.sjModo !== "off" ? "<b>●</b>" : ""), luz: "Luz", ritmo: "Ritmo", salida: "Salida"}[b.dataset.tab]; });
+  document.querySelector(".panel").scrollTop = 0; }
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => verTab(b.dataset.tab));
+verTab(TAB);
 
 // ─── arranque
 botonesEstilo(); botonesCapas();
