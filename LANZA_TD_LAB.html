@@ -323,8 +323,9 @@ if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golp
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
 if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
-const parDe = st => S.par[st] || (S.par[st] = STYLES[st].v.slice());
-const cap = () => S.capas[S.sel], estSel = () => cap().estilo, par = () => parDe(estSel());
+const parDe = st => S.par[st] || (S.par[st] = STYLES[st].v.slice());   // valores de partida de cada estilo (lo último tocado)
+const parCapa = (k, st) => { const c = S.capas[k]; c.pars = c.pars || {}; return c.pars[st] || (c.pars[st] = parDe(st).slice()); };   // cada capa tiene los suyos
+const cap = () => S.capas[S.sel], estSel = () => cap().estilo, par = () => parCapa(S.sel, estSel());
 const MODOS = {suma: 0, pantalla: 1, aclarar: 2, multiplicar: 3, diferencia: 4, mezcla: 5};
 
 const $ = id => document.getElementById(id);
@@ -707,9 +708,12 @@ const Z = {low:0, high:0, low_e:0, high_e:0};
 let FEAT = [], lastF = -1e9, CAL = false; const PX1 = new Uint8Array(4);
 // ¿hay que vaciar la memoria? saltos grandes o hacia atrás sí; la vuelta del loop no, si el efecto arranca andando (sigue de largo)
 const salto = f => (f < lastF && !(S.arranque === "andando" && lastF >= TL.total - 24 && f <= 12)) || f > lastF + 12;
-async function calentar(f){   // vacía la memoria y, si arranca andando, corre el efecto los cuadros previos (antes del 0, el final de la pieza)
+async function calentar(f, exacto = false){   // vacía la memoria y, si arranca andando, corre el efecto los cuadros previos (antes del 0, el final de la pieza)
   CAL = true; stopAudio(); reiniciar(); const N = S.arranque === "andando" ? Math.min(S.pre, TL.body) : 0;
-  try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; await prepExacto(g); render(g, true); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } }   // leer un píxel obliga a esperar a la placa: no se le amontona trabajo
+  // exacto (MP4): cada cuadro previo con su imagen de video justa. En la vista previa, rápido: el video no se busca cuadro a cuadro
+  // (es lo que más tarda) y se espera a la placa cada 4 cuadros (leer un píxel obliga a esperarla; así no se le amontona trabajo)
+  try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; if (exacto) await prepExacto(g); render(g, true);
+      if (exacto || k % 4 === 1){ gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } } }
   finally { lastF = f - 1; CAL = false; } }
 function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
   const e = Math.exp(-(f % beatF())/3); return {low_e: e, high_e: e*.5}; }
@@ -720,7 +724,7 @@ function fuente(f){
   if (it.vid && el.readyState < 2) return;
   srcX.imageSmoothingQuality = "high"; srcX.drawImage(el, ...ubicar(it.w, it.h)); }
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
-  const r = R, {W, H} = r, L = capaEstado(k), p = parDe(st), t = f/FPS;
+  const r = R, {W, H} = r, L = capaEstado(k), p = parCapa(k, st), t = f/FPS;
   const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
   const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
   if (st === "slitscan"){   // guarda la fuente en el anillo de cuadros pasados
@@ -1121,7 +1125,7 @@ function sync(){
     b.innerHTML = `Capa ${k + 1}<small>${c.on ? STYLES[c.estilo].n : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
   $("capaBox").hidden = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaGolpe").checked = !!cap().golpe;
   const nOn = S.capas.filter(c => c.on).length;
-  $("capaHint").textContent = S.sel === 0 ? `Capa 1 es la base.${nOn > 1 ? ` Hay ${nOn} capas activas; cada una corre su estilo sobre la misma fuente y se mezcla encima.` : " Activá la 2 o la 3 para mezclar otro estilo encima."} Si dos capas usan el mismo estilo, comparten sus parámetros.`
+  $("capaHint").textContent = S.sel === 0 ? `Capa 1 es la base.${nOn > 1 ? ` Hay ${nOn} capas activas; cada una corre su estilo sobre la misma fuente y se mezcla encima.` : " Activá la 2 o la 3 para mezclar otro estilo encima."} Cada capa guarda sus propios parámetros: dos capas con el mismo estilo se manejan por separado.`
     : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
   const est = estSel(), sty = STYLES[est], p = par();
   [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("p" + (i + 1)).value = p[i]; $("p" + (i + 1) + "O").textContent = Math.round(p[i]*100); });
@@ -1153,20 +1157,20 @@ function sync(){
   $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = S.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ");
   if (actx && master) master.gain.value = S.vol;
   $("json").value = JSON.stringify(ajustes()); save(); renderMios(); rearmarAudio(); }
-function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: Object.fromEntries(S.capas.filter(c => c.on).map(c => [c.estilo, parDe(c.estilo)])), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
+function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: S.capas.map((c, k) => c.on ? {capa: k + 1, estilo: c.estilo, valores: parCapa(k, c.estilo)} : null).filter(Boolean), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
 const on = (sel, attr, key, extra) => document.querySelectorAll(sel).forEach(b => b.onclick = () => { S[key] = b.dataset[attr]; if (extra) extra(); sync(); });
 on("#color button", "c", "color"); on("#orden button", "o", "orden"); on("#musica button", "m", "musica", () => { $("musHint").className = "hint"; ensureCtx(); });
 on("#fmt button", "f", "fmt", () => { _lc = null; reiniciar(); }); on("#ajuste button[data-a]", "a", "ajuste");
 const centrar = () => { S.esc = 1; S.px = 0; S.py = 0; sync(); }; $("centrar").onclick = centrar;
 num.forEach(k => $(k).oninput = e => { S[k] = +e.target.value; sync(); });
-[0, 1, 2].forEach(i => $("p" + (i + 1)).oninput = e => { par()[i] = +e.target.value; sync(); });
+[0, 1, 2].forEach(i => $("p" + (i + 1)).oninput = e => { par()[i] = +e.target.value; S.par[estSel()] = par().slice(); sync(); });
 document.querySelectorAll("#asciiSeg button").forEach(b => b.onclick = () => { S.ascii = b.dataset.x; sync(); });
 $("arampSel").onchange = e => { if (e.target.value !== "custom") S.aramp = e.target.value; else $("arampRow").hidden = false; sync(); };
 $("aramp").oninput = e => { S.aramp = e.target.value; save(); };
 $("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
 document.querySelectorAll("#arrSeg button").forEach(b => b.onclick = () => { S.arranque = b.dataset.arr; lastF = -1e9; sync(); });
 $("pre").addEventListener("change", () => { lastF = -1e9; });
-$("styReset").onclick = () => { S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
+$("styReset").onclick = () => { cap().pars[estSel()] = STYLES[estSel()].v.slice(); S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
 $("capaOp").oninput = e => { cap().op = +e.target.value; sync(); };
@@ -1198,11 +1202,11 @@ const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localSto
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
 const LOOK = ["arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
 $("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname").value.trim() || `${on.map(c => STYLES[c.estilo].n).join(" + ")} ${S.fmt}`;
-  const s = {par: Object.fromEntries(on.map(c => [c.estilo, parDe(c.estilo).slice()])), capas: JSON.parse(JSON.stringify(S.capas))};
+  S.capas.forEach((c, k) => { if (c.on) parCapa(k, c.estilo); }); const s = {capas: JSON.parse(JSON.stringify(S.capas))};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
 function renderMios(){ const box = $("mine"); box.innerHTML = "";
   MIOS.forEach((m, k) => { const b = document.createElement("button"); b.textContent = m.n;
-    b.onclick = () => { const {par: pp, estilo, capas, ...rest} = m.s; Object.assign(S, rest); Object.assign(S.par, pp);
+    b.onclick = () => { const {par: pp, estilo, capas, ...rest} = m.s; Object.assign(S, rest); if (pp) Object.assign(S.par, pp);
       if (capas) S.capas = JSON.parse(JSON.stringify(capas)); else if (estilo){ S.capas[0].estilo = estilo; S.capas[1].on = S.capas[2].on = false; }
       S.sel = 0; if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } reiniciar(); sync(); };
     const x = document.createElement("span"); x.className = "x"; x.textContent = "×"; x.title = "Borrar";
@@ -1286,7 +1290,7 @@ async function exportar(){
   items.forEach(it => { if (it.vid) it.el.pause(); });
   $("exp").disabled = true; $("rec").disabled = true; $("cancelExp").hidden = false; $("prog").hidden = false; const t1 = performance.now();
   try {
-    msg(S.arranque === "andando" ? "Precalentando el efecto…" : "Preparando…"); await calentar(0);
+    msg(S.arranque === "andando" ? "Precalentando el efecto…" : "Preparando…"); await calentar(0, true);
     for (let k=0; k<total; k++){
       if (cancelar || errs.length) break;
       await prepExacto(k); render(k);
