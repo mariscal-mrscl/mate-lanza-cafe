@@ -40,6 +40,19 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .row label{font-size:13px;color:var(--soft)}
 .row output{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;text-align:right;color:var(--fg)}
 .row.two{grid-template-columns:96px minmax(0,1fr)}
+.row.prm{grid-template-columns:86px minmax(0,1fr) 34px 18px 92px;gap:8px}
+.row.prm select{padding:4px 4px;font-size:11px}
+.rombo{width:18px;height:22px;padding:0;border:0;background:none;color:var(--mute);font-size:13px;line-height:1;cursor:pointer;letter-spacing:0}.rombo:hover{color:var(--on);border:0}
+.rombo.has{color:var(--soft)}.rombo.on{color:var(--on)}
+.explorar{position:absolute;inset:0;z-index:4;background:var(--bg);display:flex;flex-direction:column;gap:10px;padding:14px 16px;overflow:auto}
+.exBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.exBar b{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-right:6px}
+.exGrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.exGrid button{display:flex;flex-direction:column;gap:4px;padding:4px;border:1px solid var(--line);background:#000;min-height:0;align-items:center;justify-content:center}
+.exGrid button:hover,.exGrid button:focus-visible{border-color:var(--on)}.exGrid button.act{border-color:var(--soft);outline:1px dashed var(--soft);outline-offset:2px}
+.exGrid canvas{max-width:100%;max-height:calc(100% - 22px);min-height:0;flex:1;object-fit:contain}.exGrid span{font:10px var(--mono);color:var(--soft);text-align:center;line-height:1.3;text-transform:none;letter-spacing:0}
+.teclas{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--soft)}.teclas kbd{font:500 10px var(--mono);border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--fg);background:#000}
+input[type=color]{width:100%;height:30px;padding:0 2px;background:#000;border:1px solid var(--line);border-radius:4px}
+.bar b.lento{color:var(--warn)}
 input[type=range]{accent-color:var(--on);width:100%}
 select,input[type=text],input[type=number]{width:100%;box-sizing:border-box;background:#000;color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:12px var(--mono)}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
@@ -70,15 +83,22 @@ details.log[open] summary::before{content:"− "}
 .log li{margin:3px 0}
 .log code{font:11.5px var(--mono);color:var(--fg);overflow-wrap:anywhere}
 .log p{font-size:13px;color:var(--soft);margin:6px 0}
-@media (max-width:480px){.transport{flex-wrap:wrap;padding:10px 16px}.transport input[type=range]{flex-basis:100%;order:5}.grp{padding:14px 16px 16px}.row{grid-template-columns:84px minmax(0,1fr) 48px}.row.two{grid-template-columns:84px minmax(0,1fr)}.sty{grid-template-columns:1fr}}
+@media (max-width:480px){.transport{flex-wrap:wrap;padding:10px 16px}.transport input[type=range]{flex-basis:100%;order:5}.grp{padding:14px 16px 16px}.row{grid-template-columns:84px minmax(0,1fr) 48px}.row.two{grid-template-columns:84px minmax(0,1fr)}.row.prm{grid-template-columns:72px minmax(0,1fr) 30px 18px 80px;gap:6px}.sty{grid-template-columns:1fr}.exGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){.app{grid-template-columns:1fr;height:auto}.stage{border-right:0;border-bottom:1px solid var(--line)}.mon{height:70vh}.panel{overflow:visible}}
 </style></head><body>
 
 <div class="app">
   <section class="stage" aria-label="Monitor">
-    <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span></div>
+    <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span></div>
     <div class="mon" id="mon">
       <canvas id="cv" width="1080" height="1920"></canvas>
+      <div class="explorar" id="explorar" hidden>
+        <div class="exBar"><b>Variaciones</b>
+          <div class="seg" id="exAmp"><button data-x="poco">Poco</button><button data-x="medio">Medio</button><button data-x="mucho">Mucho</button></div>
+          <button id="exOtra">Otra tanda</button><button id="exVolver">Volver a la anterior</button><button id="exCerrar">Cerrar</button></div>
+        <div class="exGrid" id="exGrid"></div>
+        <p class="hint" id="exHint">El del medio es el actual. Tocá el que más te guste: pasa a ser el actual y aparecen 8 variaciones nuevas alrededor. «Medio» a veces cambia el estilo o suma una capa; «Mucho» lo hace seguido y también prende el ASCII.</p>
+      </div>
       <div class="drop" id="drop" hidden>Soltá videos, fotos o una canción</div>
       <p class="glerr" id="glErr" hidden></p>
     </div>
@@ -111,7 +131,10 @@ details.log[open] summary::before{content:"− "}
 
     <div class="grp">
       <h2>Capas</h2>
+      <div class="seg"><button class="main" id="btnExplorar">Explorar variaciones</button></div>
       <div class="sty capas" id="capasSeg"></div>
+      <div class="row two"><label for="capaZona">Va en</label>
+        <select id="capaZona"><option value="todo">Toda la imagen</option><option value="figura">Solo la figura</option><option value="fondo">Solo el fondo</option></select></div>
       <div id="capaBox" class="grp" style="padding:0;border:0">
         <label class="chk"><input type="checkbox" id="capaOn"> Capa activa</label>
         <div class="row two"><label for="capaModo">Mezcla</label>
@@ -123,11 +146,18 @@ details.log[open] summary::before{content:"− "}
       <h2>Estilo de la capa</h2>
       <div class="sty" id="estilos"></div>
       <p class="hint" id="styDesc"></p>
-      <div class="row"><label for="p1" id="p1L">—</label><input type="range" id="p1" min="0" max="1" step="0.01"><output id="p1O"></output></div>
-      <div class="row"><label for="p2" id="p2L">—</label><input type="range" id="p2" min="0" max="1" step="0.01"><output id="p2O"></output></div>
-      <div class="row"><label for="p3" id="p3L">—</label><input type="range" id="p3" min="0" max="1" step="0.01"><output id="p3O"></output></div>
+      <div class="row prm"><label for="p1" id="p1L">—</label><input type="range" id="p1" min="0" max="1" step="0.01"><output id="p1O"></output><button class="rombo" id="kf1" title="Keyframe en este cuadro">◇</button><select id="md1" aria-label="Modulación"><option value="fijo">Fijo</option><option value="grave">Grave</option><option value="agudo">Agudos</option><option value="compas">Onda × compás</option><option value="tiempo">Onda × tiempo</option><option value="azar">Azar × corte</option></select></div>
+      <div class="row prm"><label for="p2" id="p2L">—</label><input type="range" id="p2" min="0" max="1" step="0.01"><output id="p2O"></output><button class="rombo" id="kf2" title="Keyframe en este cuadro">◇</button><select id="md2" aria-label="Modulación"><option value="fijo">Fijo</option><option value="grave">Grave</option><option value="agudo">Agudos</option><option value="compas">Onda × compás</option><option value="tiempo">Onda × tiempo</option><option value="azar">Azar × corte</option></select></div>
+      <div class="row prm"><label for="p3" id="p3L">—</label><input type="range" id="p3" min="0" max="1" step="0.01"><output id="p3O"></output><button class="rombo" id="kf3" title="Keyframe en este cuadro">◇</button><select id="md3" aria-label="Modulación"><option value="fijo">Fijo</option><option value="grave">Grave</option><option value="agudo">Agudos</option><option value="compas">Onda × compás</option><option value="tiempo">Onda × tiempo</option><option value="azar">Azar × corte</option></select></div>
       <div class="row"><label for="pulso">Pulso</label><input type="range" id="pulso" min="0" max="2" step="0.05"><output id="pulsoO"></output></div>
-      <div class="seg"><button id="styReset">Valores de fábrica</button></div>
+      <div class="row"><label for="modAmt">Modulación</label><input type="range" id="modAmt" min="0" max="1" step="0.01"><output id="modAmtO"></output></div>
+      <div class="seg"><button id="styReset">Valores de fábrica</button><button id="kfClear">Borrar keyframes de la capa</button></div>
+      <p class="hint" id="kfHint">◇ fija el valor del parámetro en el cuadro donde estás; con dos o más, el parámetro se anima entre ellos (pausá y usá ← → para ir cuadro a cuadro). El menú de la derecha lo hace seguir al grave, a los agudos, a una onda por compás o por tiempo, o a un valor al azar en cada corte; Modulación decide cuánto.</p>
+      <h3>Secuencia por corte</h3>
+      <label class="chk"><input type="checkbox" id="seqOn"> Esta capa cambia de estilo en los cortes</label>
+      <div class="row two"><label for="seqCada">Cada</label><select id="seqCada"><option value="1">1 corte</option><option value="2">2 cortes</option><option value="4">4 cortes</option><option value="8">8 cortes</option></select></div>
+      <div class="seg"><button id="seqAdd">Sumar el estilo elegido</button><button id="seqClear">Vaciar</button></div>
+      <div class="seg mine" id="seqList"></div>
       <p class="hint">Pulso: cuánto empuja la música al estilo. Los graves mueven el parámetro principal y los agudos los detalles.</p>
     </div>
 
@@ -179,7 +209,8 @@ details.log[open] summary::before{content:"− "}
 
     <div class="grp">
       <h2>Terminación</h2>
-      <div class="seg" id="color"><button data-c="bn">Blanco y negro</button><button data-c="color">Color</button></div>
+      <div class="seg" id="color"><button data-c="bn">Blanco y negro</button><button data-c="color">Color</button><button data-c="duo">Duotono</button></div>
+      <div class="row two" id="duoRow"><label>Sombras / luces</label><div class="seg" style="flex-wrap:nowrap"><input type="color" id="duoA" aria-label="Color de las sombras"><input type="color" id="duoB" aria-label="Color de las luces"></div></div>
       <div class="row"><label for="estela">Estela</label><input type="range" id="estela" min="0" max="0.96" step="0.01"><output id="estelaO"></output></div>
       <h3>Luz</h3>
       <div class="row"><label for="expo">Exposición</label><input type="range" id="expo" min="-2" max="2" step="0.05"><output id="expoO"></output></div>
@@ -244,8 +275,13 @@ details.log[open] summary::before{content:"− "}
     <div class="grp">
       <h2>Mis presets</h2>
       <div class="row two"><label for="pname">Nombre</label><input type="text" id="pname" placeholder="ej. túnel 96 color" maxlength="40"></div>
-      <div class="seg"><button id="psave">Guardar actual</button></div>
+      <div class="seg"><button id="psave">Guardar actual</button><button id="pexp">Exportar presets</button><button id="pimp">Importar presets</button></div>
+      <input type="file" id="pfile" accept=".json,application/json" hidden>
       <div class="seg mine" id="mine"></div>
+      <h3>Proyecto</h3>
+      <div class="seg"><button id="projSave">Guardar proyecto</button><button id="projOpen">Abrir proyecto</button></div>
+      <input type="file" id="projFile" accept=".json,application/json" hidden>
+      <p class="hint" id="projHint">El proyecto guarda en un archivo todos los ajustes, las tres capas con sus keyframes, los presets y las correcciones del pincel. El material no va adentro: volvé a cargarlo al abrir.</p>
     </div>
 
     <div class="grp">
@@ -253,6 +289,9 @@ details.log[open] summary::before{content:"− "}
       <div class="seg">
         <button class="main" id="exp">Exportar MP4 (cuadro por cuadro)</button><button id="cancelExp" hidden>Cancelar</button>
       </div>
+      <h3>Varios formatos</h3>
+      <div class="seg" id="cola"><button data-f="916">9:16</button><button data-f="feed">4:5</button><button data-f="34">3:4</button><button data-f="11">1:1</button><button data-f="169">16:9</button></div>
+      <div class="seg"><button id="expCola">Exportar los marcados</button></div>
       <div class="row two"><label for="calidad">Calidad</label>
         <select id="calidad"><option value="80">Máxima · 80 Mb/s (para editar o archivar)</option><option value="40">Alta · 40 Mb/s</option><option value="16">Liviana · 16 Mb/s (para mandar)</option></select></div>
       <div class="prog" id="prog" hidden><i id="progBar"></i></div>
@@ -283,6 +322,8 @@ details.log[open] summary::before{content:"− "}
           <li><b>Partículas</b>: Particles GPU que nacen en lo claro de la imagen y viajan por un campo de ruido (curl noise), con estela.</li>
           <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
         </ul>
+        <h4>Atajos de teclado</h4>
+        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>V</kbd> explorar variaciones</span></div>
         <h4>Hereda de la serie</h4>
         <ul>
           <li>24 fps, blanco y negro por defecto, logo arriba y LANZAPOST.COM al pie, cierre de 3 s que aterriza en el logo real.</li>
@@ -326,7 +367,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -459,8 +500,9 @@ void main(){
   o = vec4(mix(e, ot, w), 1.); }`,
 trail: `uniform float uEstela; uniform sampler2D uFx;
 void main(){ o = vec4(max(texture(uFx, vUv).rgb, texture(uPrev, vUv).rgb*uEstela), 1.); }`,
-mezcla: `uniform sampler2D uA, uB; uniform float uOp, uModo;
+mezcla: `uniform sampler2D uA, uB, uMask; uniform float uOp0, uModo, uZonaC;
 void main(){
+  float m0 = texture(uMask, vUv).a, uOp = uOp0*(uZonaC < .5 ? 1. : uZonaC < 1.5 ? m0 : 1. - m0);   // sujeto por capa: la capa va solo en la figura o en el fondo
   vec3 a = texture(uA, vUv).rgb, b0 = texture(uB, vUv).rgb, b = b0*uOp, c;
   int m = int(uModo + .5);
   if (m == 0) c = a + b;
@@ -470,7 +512,7 @@ void main(){
   else if (m == 4) c = abs(a - b);
   else c = mix(a, b0, uOp);
   o = vec4(c, 1.); }`,
-final: `uniform float uMono, uGam, uGrano, uInv, uExpo, uCon, uAltas, uNeg; uniform sampler2D uImg;
+final: `uniform float uMono, uGam, uGrano, uInv, uExpo, uCon, uAltas, uNeg, uDuo; uniform vec3 uDA, uDB; uniform sampler2D uImg;
 void main(){
   vec3 c = texture(uImg, vUv).rgb;
   c = mix(c, vec3(lum(c)), uMono);
@@ -479,6 +521,7 @@ void main(){
   c = (c - uNeg)/max(.05, 1. - uNeg);
   c = (c - .5)*uCon + .5;
   c = pow(max(c, 0.), vec3(uGam));
+  if (uDuo > .5) c = mix(uDA, uDB, clamp(lum(c), 0., 1.));
   c += (hash(vUv*uRes + fract(uF*.618)*100.) - .5)*uGrano;
   c = mix(c, 1. - c, uInv);
   o = vec4(clamp(c, 0., 1.), 1.); }`
@@ -611,7 +654,7 @@ else try {
 function use(p, U, T = {}){
   gl.useProgram(p); let unit = 0;
   for (const k in U){ const l = k in p.loc ? p.loc[k] : (p.loc[k] = gl.getUniformLocation(p, k)); if (l === null) continue;
-    const v = U[k]; Array.isArray(v) ? gl.uniform2f(l, v[0], v[1]) : gl.uniform1f(l, v); }
+    const v = U[k]; !Array.isArray(v) ? gl.uniform1f(l, v) : v.length === 3 ? gl.uniform3f(l, v[0], v[1], v[2]) : gl.uniform2f(l, v[0], v[1]); }
   for (const k in T){ const l = k in p.loc ? p.loc[k] : (p.loc[k] = gl.getUniformLocation(p, k)); if (l === null) continue;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(k === "uHist" ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D, T[k]); gl.uniform1i(l, unit); unit++; } }
 function target(w, h, flt, wrap = gl.CLAMP_TO_EDGE, f32 = false){   // f32: estado exacto (partículas), sin filtro
@@ -715,7 +758,8 @@ const vtDe = (seg, f) => { const d = seg.it.el.duration || 1; return (seg.vt0 + 
 
 // ─── un cuadro
 const Z = {low:0, high:0, low_e:0, high_e:0};
-let FEAT = [], lastF = -1e9, CAL = false; const PX1 = new Uint8Array(4);
+let FEAT = [], lastF = -1e9, CAL = false, BYPASS = false;
+const hexRGB = h => { const n = parseInt((h || "#000000").slice(1), 16); return [(n >> 16 & 255)/255, (n >> 8 & 255)/255, (n & 255)/255]; }; const PX1 = new Uint8Array(4);
 // ¿hay que vaciar la memoria? saltos grandes o hacia atrás sí; la vuelta del loop no, si el efecto arranca andando (sigue de largo)
 const salto = f => (f < lastF && !(S.arranque === "andando" && lastF >= TL.total - 24 && f <= 12)) || f > lastF + 12;
 async function calentar(f, exacto = false){   // vacía la memoria y, si arranca andando, corre el efecto los cuadros previos (antes del 0, el final de la pieza)
@@ -737,8 +781,20 @@ function fuente(f){
   const seg = segAt(f); if (!seg || !seg.it) return; const it = seg.it, el = it.el;
   if (it.vid && el.readyState < 2) return;
   srcX.imageSmoothingQuality = "high"; srcX.drawImage(el, ...ubicar(it.w, it.h)); }
+// valor de un parámetro en un cuadro: keyframes (interpolados suave) y modulación (grave, agudos, ondas, azar por corte)
+function kfVal(L, f){ const n = L.length; if (f <= L[0][0]) return L[0][1]; if (f >= L[n - 1][0]) return L[n - 1][1];
+  for (let i=0; i<n - 1; i++){ const [a, va] = L[i], [b, vb] = L[i + 1]; if (f <= b){ const t = (f - a)/(b - a), q = t*t*(3 - 2*t); return va + (vb - va)*q; } } return L[n - 1][1]; }
+const kfsDe = (k, st) => { const c = S.capas[k]; c.kfs = c.kfs || {}; return c.kfs[st] || (c.kfs[st] = [[], [], []]); };
+const modsDe = (k, st) => { const c = S.capas[k]; c.mods = c.mods || {}; return c.mods[st] || (c.mods[st] = ["fijo", "fijo", "fijo"]); };
+const azar = (a, b) => { const x = Math.sin(a*12.9898 + b*78.233)*43758.5453; return x - Math.floor(x); };
+function modVal(src, f, ft, seg, i){ const b = beatF();
+  return src === "grave" ? ft.low_e*.8 : src === "agudo" ? (ft.high_e || 0)*.8 : src === "compas" ? .5*Math.sin(2*Math.PI*f/(b*4)) : src === "tiempo" ? .5*Math.sin(2*Math.PI*f/b) : src === "azar" ? azar((seg && seg.k) || 0, i + 1) - .5 : 0; }
+function parBase(k, st, f){ const kf = kfsDe(k, st); return parCapa(k, st).map((v, i) => kf[i].length ? kfVal(kf[i], f) : v); }
+function parEf(k, st, f, ft, seg){ const md = modsDe(k, st), amt = S.capas[k].modAmt ?? .5;
+  return parBase(k, st, f).map((v, i) => Math.min(1, Math.max(0, v + (md[i] !== "fijo" ? amt*modVal(md[i], f, ft, seg, i) : 0)))); }
+const estiloDe = (k, seg) => { const c = S.capas[k]; return c.seqOn && c.seq && c.seq.length ? c.seq[Math.floor(((seg && seg.k) || 0)/(c.seqCada || 1)) % c.seq.length] : c.estilo; };
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
-  const r = R, {W, H} = r, L = capaEstado(k), p = parCapa(k, st), t = f/FPS;
+  const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = f/FPS;
   const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
   const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
   if (st === "slitscan"){   // guarda la fuente en el anillo de cuadros pasados
@@ -762,7 +818,7 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
     use(P.g_malla, {...M, uAxis: 1}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, nx*segs*2);
     gl.disable(gl.BLEND); }
   else if (st === "particulas" && FLT){
-    const pt = ptBuffers(L, p), side = pt[0].w, a = pt[L.ptI], b = pt[1 - L.ptI]; L.ptI = 1 - L.ptI;
+    const pt = ptBuffers(L, pb), side = pt[0].w, a = pt[L.ptI], b = pt[1 - L.ptI]; L.ptI = 1 - L.ptI;
     bindT(b); use(P.pSim, {...U, uReset: L.ptReset ? 1 : 0, uLifeF: 60}, {uSrc: r.src, uState: a.t}); quad(); L.ptReset = false;
     bindT(dst); use(P.fade, {uDecay: .9}, {uPrev: prev.t}); quad();
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
@@ -777,7 +833,7 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
       use(P.g_lineas, {uRows: rows, uCols: cols, uAsp: asp, uAmp: p[1]*1.2*(1 + S.pulso*ft.low_e*.6), uTilt: -p[2]*.9}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, rows*cols*2); }
     gl.disable(gl.BLEND); }
   else if (st === "rd" && FLT){
-    const rd = rdBuffers(L, p), iters = 2 + Math.round(p[1]*14), [w, h] = [rd[0].w, rd[0].h];
+    const rd = rdBuffers(L, pb), iters = 2 + Math.round(p[1]*14), [w, h] = [rd[0].w, rd[0].h];
     const inject = !inC && (f === seg.f0 || (S.pulso*ft.low_e > .8 && f % Math.round(beatF()) === 0)) ? 1 : 0;
     for (let q=0; q<iters; q++){ const a = rd[L.rdI], b = rd[1 - L.rdI]; L.rdI = 1 - L.rdI;
       bindT(b); use(P.rdSim, {...U, uTex: [1/w, 1/h], uReset: L.rdReset ? 1 : 0, uInject: q === 0 ? inject : 0}, {uSrc: r.src, uState: a.t}); quad(); L.rdReset = false; }
@@ -793,24 +849,33 @@ function render(f, pre = false){
   const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
   const base = {uRes: [W, H], uAnchoF: fm.W, uT: f/FPS, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
     uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
-  // capa 1 es la base; las otras se mezclan encima con su modo y opacidad
-  let acc = capaRender(0, S.capas[0].estilo, f, base, ft, seg, inC), m = 0;
+  // la máscara de figura y fondo se arma antes: la usan las capas que van solo en una parte y el Sujeto general
+  let mk = false; const zonas = S.capas.some(c => c.on && c.zona && c.zona !== "todo");
+  if (S.sjModo !== "off" && !inC && (S.sj > 0 || zonas)){ const M = mascara(f);
+    if (M){ if (!r.mk){ r.mk = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+      gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, M); mk = true; } }
+  const ZC = c => mk ? ({todo: 0, figura: 1, fondo: 2}[c.zona || "todo"] || 0) : 0, mkT = mk ? r.mk : r.src;
+  let img;
+  if (BYPASS && !pre){ bindT(r.mx[0]); use(P.copy, {}, {uSrc: r.src}); quad(); img = r.mx[0]; }   // ver sin efecto (tecla B)
+  else {
+  // capa 1 es la base; las otras se mezclan encima con su modo y opacidad (y, si se eligió, solo en la figura o en el fondo)
+  let acc = capaRender(0, estiloDe(0, seg), f, base, ft, seg, inC), m = 0;
+  if (ZC(S.capas[0])){ const dst = r.mx[m]; m = 1 - m; bindT(dst); use(P.mezcla, {uOp0: 1, uModo: 5, uZonaC: ZC(S.capas[0])}, {uA: r.src, uB: acc.t, uMask: mkT}); quad(); acc = dst; }
   for (let k=1; k<3; k++){ const c = S.capas[k]; if (!c.on){ if (r.L[k]){ soltarCapa(r.L[k]); r.L[k] = null; } continue; }
-    const out = capaRender(k, c.estilo, f, base, ft, seg, inC), op = c.op*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
-    bindT(dst); use(P.mezcla, {uOp: op, uModo: MODOS[c.modo] || 0}, {uA: acc.t, uB: out.t}); quad(); acc = dst; }
+    const out = capaRender(k, estiloDe(k, seg), f, base, ft, seg, inC), op = c.op*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
+    bindT(dst); use(P.mezcla, {uOp0: op, uModo: MODOS[c.modo] || 0, uZonaC: ZC(c)}, {uA: acc.t, uB: out.t, uMask: mkT}); quad(); acc = dst; }
   const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
   bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: acc.t, uPrev: tp.t}); quad();
-  let img = td;
+  img = td;
   if (S.ascii !== "off"){   // panel ASCII: cada celda toma el brillo de la mezcla y elige su carácter
     const fs = S.afs*W/1080, at = atlas(); bindT(r.as);
     use(P.ascii, {...base, uCw: fs*.6, uCh: fs*1.2, uN: atlN, uMix: S.ascii === "sobre" ? S.amix : 0, uTinta: S.color === "color" ? .8 : 0, uGamA: S.agam}, {uImg: td.t, uAtlas: at}); quad(); img = r.as; }
-  if (S.sjModo !== "off" && !inC && S.sj > 0){ const M = mascara(f);   // figura y fondo: donde no va el efecto se ve la otra parte
-    if (M){ if (!r.mk){ r.mk = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
-      gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, M);
-      bindT(r.sj); use(P.sujeto, {...base, uZona: S.sjZona === "fondo" ? 1 : 0, uCant: Math.min(1, S.sj), uOtro: {foto: 0, flash: 1, negro: 2}[S.sjOtro]}, {uImg: img.t, uSrc: r.src, uMask: r.mk}); quad(); img = r.sj; } }
-  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
-    uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg}, {uImg: img.t}); quad();
+  if (mk && S.sj > 0){   // figura y fondo: donde no va el efecto se ve la otra parte
+    bindT(r.sj); use(P.sujeto, {...base, uZona: S.sjZona === "fondo" ? 1 : 0, uCant: Math.min(1, S.sj), uOtro: {foto: 0, flash: 1, negro: 2}[S.sjOtro]}, {uImg: img.t, uSrc: r.src, uMask: r.mk}); quad(); img = r.sj; }
+  }
+  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "color" ? 0 : 1, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
+    uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg, uDuo: S.color === "duo" ? 1 : 0, uDA: hexRGB(S.duoA), uDB: hexRGB(S.duoB)}, {uImg: img.t}); quad();
   if (!pre) componer(f);
 }
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
@@ -969,6 +1034,10 @@ async function analizarSujeto(){   // recorre todo el material una vez por modo;
   finally { SJ.corriendo = false; lastF = -1e9; $("sjProg").hidden = true; if (S.sjModo === modo && SJ[modo] === id) sjHint(); if (S.sjModo !== modo) sync(); } }
 // pincel de corrección: trazos en fracciones del lienzo (sirven en cualquier formato), por tramo de cuadros; se suman a la máscara
 const PIN = {modo: "off", capas: [], ult: []};
+const pinPlano = () => PIN.capas.map(c => ({f0: c.f0, f1: c.f1, trazos: c.trazos.map(t => ({tipo: t.tipo, r: t.r, pts: t.pts, fa: t.fa, trk: t.trk ? {f0: t.trk.f0, dx: Array.from(t.trk.dx), dy: Array.from(t.trk.dy)} : null}))}));
+const pinDesdePlano = L => L.map(c => { const capa = {f0: c.f0, f1: c.f1, trazos: []}; capa.trazos = c.trazos.map(t => ({...t, capa})); return capa; });
+function guardarPin(){ try { localStorage.setItem("lanzaTdLabPin", JSON.stringify({material: $("srcName").textContent, capas: pinPlano()})); } catch(e) {} }
+function cargarPin(label){ try { const d = JSON.parse(localStorage.getItem("lanzaTdLabPin") || "null"); return d && d.material === label ? pinDesdePlano(d.capas) : []; } catch(e){ return []; } }
 function corrimiento(t, f){ const k = t.trk; if (!k) return [0, 0]; const i = Math.max(0, Math.min(k.dx.length - 1, f - k.f0)); return [k.dx[i], k.dy[i]]; }
 function dosToques(el, txt, fn){ if (el.dataset.arm){ delete el.dataset.arm; fn(); return; } const o = el.textContent; el.dataset.arm = "1"; el.textContent = txt;
   setTimeout(() => { if (el.dataset.arm){ delete el.dataset.arm; el.textContent = o; } }, 2500); }
@@ -996,7 +1065,7 @@ async function seguirTrazo(t){
         dx[fr - c0] = (px - cx)/tw; dy[fr - c0] = (py - cy)/th; prev = img;
         if (++hecho % 12 === 0){ $("sjBar").style.width = (100*hecho/n).toFixed(1) + "%"; sjHint(`Siguiendo el trazo: ${hecho} de ${n} cuadros.`); await tick(); } } }
     t.trk = {f0: c0, dx, dy}; }
-  finally { SJ.corriendo = false; playing = playAntes; lastF = -1e9; $("sjProg").hidden = true; sjHint(); } }
+  finally { SJ.corriendo = false; playing = playAntes; lastF = -1e9; $("sjProg").hidden = true; sjHint(); guardarPin(); } }
 document.querySelectorAll("#sjModo [data-s]").forEach(b => b.onclick = () => { S.sjModo = b.dataset.s; if (S.sjModo !== "off" && !S.sj) S.sj = 1; sync(); verTab(TAB); });
 document.querySelectorAll("#sjZona [data-z]").forEach(b => b.onclick = () => { S.sjZona = b.dataset.z; sync(); });
 document.querySelectorAll("#sjOtro [data-w]").forEach(b => b.onclick = () => { S.sjOtro = b.dataset.w; sync(); });
@@ -1005,8 +1074,8 @@ $("sjVer").onchange = e => { S.sjVer = e.target.checked; sync(); };
 $("sjPer").onchange = e => { S.sjPer = e.target.checked; SJ.pro = -1; items.forEach(it => { if (it.pm) delete it.pm.pro; }); sync(); };
 $("pinAlc").onchange = e => { S.pinAlc = e.target.value; sync(); };
 $("pinSeg2").onchange = e => { S.pinSeg = e.target.checked; sync(); };
-$("pinUndo").onclick = () => { const c = PIN.ult.pop(); if (c){ c.trazos.pop(); if (!c.trazos.length) PIN.capas.splice(PIN.capas.indexOf(c), 1); } sync(); };
-$("pinClear").onclick = () => dosToques($("pinClear"), "¿Seguro? Tocá de nuevo", () => { PIN.capas = []; PIN.ult = []; sync(); });
+$("pinUndo").onclick = () => { const c = PIN.ult.pop(); if (c){ c.trazos.pop(); if (!c.trazos.length) PIN.capas.splice(PIN.capas.indexOf(c), 1); } guardarPin(); sync(); };
+$("pinClear").onclick = () => dosToques($("pinClear"), "¿Seguro? Tocá de nuevo", () => { PIN.capas = []; PIN.ult = []; guardarPin(); sync(); });
 
 // videos: en vivo corren solos y se corrigen si se atrasan; al exportar se busca cada cuadro exacto
 function seekTo(v, t){ return new Promise(r => { if (Math.abs(v.currentTime - t) < .25/FPS && v.readyState >= 2 && !v.seeking) return r();
@@ -1103,7 +1172,7 @@ function ensureCtx(){ if (!actx){ actx = new AudioContext(); master = actx.creat
 function startAudio(){ stopAudio(); if (!soundOn || !PLAY || !actx) return; const off = fi/FPS; if (off >= PLAY.duration - .02) return;
   srcNode = actx.createBufferSource(); srcNode.buffer = PLAY; srcNode.connect(master); t0 = actx.currentTime + .03; f0 = fi; srcNode.start(t0, off); }
 function stopAudio(){ if (srcNode){ try { srcNode.stop(); } catch(e){} srcNode.disconnect(); srcNode = null; } }
-let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
+let fpsE = 0, fpsT = 0, kfVisto = -1; let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
 function wrap(){ if (recorder){ recorder.stop(); recorder = null; } fi = 0; stopAudio(); }
 function loop(ts){
   if (!exportando){
@@ -1113,7 +1182,9 @@ function loop(ts){
       else { acc += Math.min(200, ts - (last || ts)); while (acc >= 1000/FPS){ acc -= 1000/FPS; fi++; if (fi >= TL.total) wrap(); } }
     } else stopAudio();
     fi = Math.min(fi, TL.total - 1);
-    if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ lastR = ts; if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); } }
+    if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ const dt = ts - lastR; lastR = ts; if (dt < 1000) fpsE = fpsE ? fpsE*.9 + dt*.1 : dt;
+      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); if (fi !== kfVisto) slidersKF(); } }
+    if (ts - fpsT > 500){ fpsT = ts; const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
     const b = Math.floor(fi/beatF() + 1e-6) % 4; document.querySelectorAll("#beat i").forEach((e, k) => e.classList.toggle("on", k === b));
@@ -1122,8 +1193,54 @@ function loop(ts){
 $("play").onclick = () => { playing = !playing; $("play").setAttribute("aria-pressed", playing); $("play").textContent = playing ? "Pausa" : "Reproducir"; if (!playing) stopAudio(); };
 $("snd").onclick = () => { ensureCtx(); soundOn = !soundOn; $("snd").setAttribute("aria-pressed", soundOn); if (!soundOn) stopAudio(); };
 $("scrub").oninput = e => { fi = +e.target.value; stopAudio(); };
-document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && (e.target.type === "text" || e.target.type === "number")) return;
+const TECLAS_ESTILO = ["Digit1","Digit2","Digit3","Digit4","Digit5","Digit6","Digit7","Digit8","Digit9","Digit0","Minus","Equal"];
+document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && (e.target.type === "text" || e.target.type === "number" || e.target.type === "color")) return;
+  if (e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
+  const si = TECLAS_ESTILO.indexOf(e.code); if (si >= 0 && !EX.abierto){ const k = Object.keys(STYLES)[si]; if (k){ document.querySelector(`#estilos button[data-s="${k}"]`).click(); verTab("estilo"); } return; }
+  if (e.code === "Tab" && !e.shiftKey && e.target === document.body){ e.preventDefault(); S.sel = (S.sel + 1) % 3; sync(); verTab("estilo"); return; }
+  if (e.code === "KeyB" && !e.repeat){ BYPASS = true; $("bypInfo").hidden = false; return; }
+  if (e.code === "KeyK"){ $("kf1").click(); return; }
+  if (e.code === "KeyV"){ EX.abierto ? cerrarExplorar() : abrirExplorar(); return; }
+  if (e.code === "Escape" && EX.abierto){ cerrarExplorar(); return; }
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
+
+document.addEventListener("keyup", e => { if (e.code === "KeyB"){ BYPASS = false; $("bypInfo").hidden = true; } });
+
+// ─── explorar variaciones: 8 versiones del look actual alrededor del actual; elegir una la vuelve el centro
+const EX = {abierto: false, amp: "medio", hist: [], vars: [], base: null};
+const LOOKX = ["capas","pulso","estela","ascii","afs","aramp","expo","altas","con"];
+const foto = () => JSON.parse(JSON.stringify(Object.fromEntries(LOOKX.map(k => [k, S[k]]))));
+const ponerFoto = v => Object.assign(S, JSON.parse(JSON.stringify(v)));
+function mutar(v0){ const a = {poco: .15, medio: .32, mucho: .5}[EX.amp], v = JSON.parse(JSON.stringify(v0)), R_ = Math.random, cl = (x, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
+  const ks = Object.keys(STYLES), modos = Object.keys(MODOS);
+  v.capas.forEach((c, k) => {
+    if (!c.on){ if (EX.amp !== "poco" && k > 0 && R_() < (EX.amp === "mucho" ? .35 : .18)){ c.on = true; c.estilo = ks[R_()*ks.length|0]; c.op = .4 + R_()*.5; c.modo = modos[R_()*3|0]; } else return; }
+    if (EX.amp !== "poco" && R_() < (EX.amp === "mucho" ? .45 : .22)) c.estilo = ks[R_()*ks.length|0];
+    c.pars = c.pars || {}; c.pars[c.estilo] = (c.pars[c.estilo] || parDe(c.estilo)).map(x => cl(x + (R_() - .5)*2*a));
+    if (k > 0){ c.op = cl(c.op + (R_() - .5)*a, .15, 1); if (R_() < a*.8) c.modo = modos[R_()*modos.length|0]; if (EX.amp === "mucho" && R_() < .15) c.on = false; } });
+  v.estela = cl(v.estela + (R_() - .5)*a, 0, .95); v.pulso = cl(v.pulso + (R_() - .5)*a*2, 0, 2);
+  if (EX.amp === "mucho" && R_() < .2) v.ascii = v.ascii === "off" ? (R_() < .5 ? "sobre" : "solo") : "off";
+  return v; }
+function resumen(v){ return v.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ") + (v.ascii !== "off" ? " · ASCII" : ""); }
+async function tanda(nueva = true){
+  if (!EX.base) EX.base = foto(); if (nueva) EX.vars = Array.from({length: 9}, (_, i) => i === 4 ? EX.base : mutar(EX.base));
+  const grid = $("exGrid"); grid.innerHTML = ""; const {W, H} = F(), ch = 360, cw = Math.round(ch*W/H), real = foto(), f = Math.min(fi, TL.body - 1);
+  const celdas = EX.vars.map((v, i) => { const b = document.createElement("button"), c = document.createElement("canvas"), sp = document.createElement("span"); c.width = cw; c.height = ch;
+    sp.textContent = i === 4 ? "Actual" : resumen(v); if (i === 4) b.className = "act"; b.append(c, sp); b.onclick = () => elegirVariante(i); grid.append(b); return c; });
+  CAL = true; stopAudio(); $("exHint").textContent = "Armando las variaciones…";
+  try { for (let i=0; i<9; i++){ if (!EX.abierto) break; ponerFoto(EX.vars[i]); if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } reiniciar();
+      for (let k=24; k>=1; k--){ render(((f - k) % TL.body + TL.body) % TL.body, true); if (k % 4 === 1){ gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } }
+      lastF = f - 1; render(f); celdas[i].getContext("2d").drawImage(cv, 0, 0, cw, ch); await tick(); } }
+  finally { ponerFoto(real); if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } lastF = -1e9; CAL = false;
+    $("exHint").textContent = "El del medio es el actual. Tocá el que más te guste: pasa a ser el actual y aparecen 8 variaciones nuevas alrededor. «Medio» a veces cambia el estilo o suma una capa; «Mucho» lo hace seguido y también prende el ASCII."; } }
+function elegirVariante(i){ if (CAL) return; if (i === 4){ cerrarExplorar(); return; } EX.hist.push(EX.base); EX.base = EX.vars[i]; ponerFoto(EX.base); sync(); tanda(); }
+function abrirExplorar(){ if (exportando) return; EX.abierto = true; EX.base = foto(); $("explorar").hidden = false; if (playing) $("play").click(); sync(); tanda(); }
+function cerrarExplorar(){ EX.abierto = false; $("explorar").hidden = true; lastF = -1e9; sync(); }
+$("btnExplorar").onclick = abrirExplorar; $("exCerrar").onclick = cerrarExplorar;
+$("exOtra").onclick = () => { if (!CAL) tanda(); };
+$("exVolver").onclick = () => { if (CAL || !EX.hist.length) return; EX.base = EX.hist.pop(); ponerFoto(EX.base); sync(); tanda(); };
+document.querySelectorAll("#exAmp button").forEach(b => b.onclick = () => { EX.amp = b.dataset.x; document.querySelectorAll("#exAmp button").forEach(x => x.setAttribute("aria-pressed", x === b)); if (!CAL) tanda(); });
+document.querySelector('#exAmp [data-x="medio"]').setAttribute("aria-pressed", "true");
 
 // ─── controles
 const num = ["pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
@@ -1142,7 +1259,13 @@ function sync(){
   $("capaHint").textContent = S.sel === 0 ? `Capa 1 es la base.${nOn > 1 ? ` Hay ${nOn} capas activas; cada una corre su estilo sobre la misma fuente y se mezcla encima.` : " Activá la 2 o la 3 para mezclar otro estilo encima."} Cada capa guarda sus propios parámetros: dos capas con el mismo estilo se manejan por separado.`
     : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
   const est = estSel(), sty = STYLES[est], p = par();
-  [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("p" + (i + 1)).value = p[i]; $("p" + (i + 1) + "O").textContent = Math.round(p[i]*100); });
+  slidersKF(); const md = modsDe(S.sel, est); [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("md" + (i + 1)).value = md[i]; });
+  $("modAmt").value = cap().modAmt ?? .5; $("modAmtO").textContent = Math.round((cap().modAmt ?? .5)*100) + "%";
+  $("capaZona").value = cap().zona || "todo"; $("capaZona").title = S.sjModo === "off" ? "Elegí un modo en la pestaña Sujeto para separar figura y fondo" : "";
+  $("seqOn").checked = !!cap().seqOn; $("seqCada").value = String(cap().seqCada || 1); const sq = $("seqList"); sq.innerHTML = "";
+  (cap().seq || []).forEach((st, q) => { const b = document.createElement("button"); b.textContent = STYLES[st].n; const x = document.createElement("span"); x.className = "x"; x.textContent = "×";
+    b.onclick = () => { cap().seq.splice(q, 1); sync(); }; b.append(x); sq.append(b); });
+  document.querySelectorAll("#cola button").forEach(b => b.setAttribute("aria-pressed", (S.cola || []).includes(b.dataset.f))); $("duoRow").hidden = S.color !== "duo"; $("duoA").value = S.duoA; $("duoB").value = S.duoB;
   if (est === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, p[1]*3.99|0)];
   const sinF = (est === "rd" || est === "particulas") && !FLT;
   $("styDesc").textContent = sty.d + (sinF ? " (Este navegador no puede simularlo: falta textura de punto flotante.)" : "");
@@ -1184,6 +1307,28 @@ $("aramp").oninput = e => { S.aramp = e.target.value; save(); };
 $("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
 document.querySelectorAll("#arrSeg button").forEach(b => b.onclick = () => { S.arranque = b.dataset.arr; lastF = -1e9; sync(); });
 $("pre").addEventListener("change", () => { lastF = -1e9; });
+// parámetros: el slider muestra el valor del cuadro (keyframes); moverlo corrige el keyframe de ese cuadro si el parámetro ya tiene
+function slidersKF(){ const est = estSel(), kf = kfsDe(S.sel, est), v = parBase(S.sel, est, fi); kfVisto = fi;
+  [0, 1, 2].forEach(i => { if (document.activeElement !== $("p" + (i + 1))) $("p" + (i + 1)).value = v[i]; $("p" + (i + 1) + "O").textContent = Math.round(v[i]*100);
+    const r = $("kf" + (i + 1)), en = kf[i].some(([f]) => f === fi); r.className = "rombo" + (kf[i].length ? " has" : "") + (en ? " on" : ""); r.textContent = en ? "◆" : "◇"; });
+  if (estSel() === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, v[1]*3.99|0)];
+  const nk = kf.reduce((a, l) => a + l.length, 0); $("kfClear").disabled = !S.capas.some(c => c.kfs && Object.values(c.kfs).some(l => l.some(x => x.length))) ; }
+function ponerKF(i, f, v){ const L = kfsDe(S.sel, estSel())[i], j = L.findIndex(([g]) => g === f); if (j >= 0) L[j][1] = v; else { L.push([f, v]); L.sort((a, b) => a[0] - b[0]); } }
+[0, 1, 2].forEach(i => {
+  $("p" + (i + 1)).oninput = e => { const v = +e.target.value, L = kfsDe(S.sel, estSel())[i];
+    if (L.length) ponerKF(i, fi, v); else { par()[i] = v; S.par[estSel()] = par().slice(); } sync(); };
+  $("kf" + (i + 1)).onclick = () => { const L = kfsDe(S.sel, estSel())[i], j = L.findIndex(([f]) => f === fi);
+    if (j >= 0) L.splice(j, 1); else ponerKF(i, fi, parBase(S.sel, estSel(), fi)[i]); if (playing) $("play").click(); sync(); };
+  $("md" + (i + 1)).onchange = e => { modsDe(S.sel, estSel())[i] = e.target.value; sync(); }; });
+$("modAmt").oninput = e => { cap().modAmt = +e.target.value; sync(); };
+$("kfClear").onclick = () => dosToques($("kfClear"), "¿Seguro? Tocá de nuevo", () => { cap().kfs = {}; sync(); });
+$("capaZona").onchange = e => { cap().zona = e.target.value; sync(); };
+$("seqOn").onchange = e => { cap().seqOn = e.target.checked; if (cap().seqOn && !(cap().seq || []).length) cap().seq = [estSel()]; sync(); };
+$("seqCada").onchange = e => { cap().seqCada = +e.target.value; sync(); };
+$("seqAdd").onclick = () => { (cap().seq = cap().seq || []).push(estSel()); sync(); };
+$("seqClear").onclick = () => { cap().seq = []; sync(); };
+$("duoA").oninput = e => { S.duoA = e.target.value; save(); }; $("duoB").oninput = e => { S.duoB = e.target.value; save(); };
+document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const c = S.cola = S.cola || [], j = c.indexOf(b.dataset.f); if (j >= 0) c.splice(j, 1); else c.push(b.dataset.f); sync(); });
 $("styReset").onclick = () => { cap().pars[estSel()] = STYLES[estSel()].v.slice(); S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
@@ -1206,7 +1351,7 @@ cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId);
     trazo = {tipo: PIN.modo, r: S.pinR/2/F().W, pts: [enLienzo(e)], fa: cur, capa}; capa.trazos.push(trazo); PIN.ult.push(capa); if (playing) $("play").click(); return; }
   drag = {x: e.clientX, y: e.clientY, px: S.px, py: S.py}; cv.style.cursor = "grabbing"; });
 cv.addEventListener("pointermove", e => { if (trazo){ trazo.pts.push(enLienzo(e)); return; } if (!drag) return; const r = cv.getBoundingClientRect(); S.px = Math.max(-1, Math.min(1, drag.px + 2*(e.clientX - drag.x)/r.width)); S.py = Math.max(-1, Math.min(1, drag.py + 2*(e.clientY - drag.y)/r.height)); sync(); });
-const finTrazo = () => { if (trazo){ const t = trazo; trazo = null; sync(); if (S.pinSeg && S.pinAlc !== "cuadro") seguirTrazo(t); return; } drag = null; sync(); };
+const finTrazo = () => { if (trazo){ const t = trazo; trazo = null; guardarPin(); sync(); if (S.pinSeg && S.pinAlc !== "cuadro") seguirTrazo(t); return; } drag = null; sync(); };
 cv.addEventListener("pointerup", finTrazo); cv.addEventListener("pointercancel", finTrazo);
 cv.addEventListener("wheel", e => { e.preventDefault(); S.esc = Math.max(.25, Math.min(3, S.esc*Math.exp(-e.deltaY*.0015))); sync(); }, {passive: false});
 cv.addEventListener("dblclick", () => { if (PIN.modo === "off") centrar(); });
@@ -1214,13 +1359,28 @@ cv.addEventListener("dblclick", () => { if (PIN.modo === "off") centrar(); });
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
-const LOOK = ["arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
+const LOOK = ["duoA","duoB","arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
 $("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname").value.trim() || `${on.map(c => STYLES[c.estilo].n).join(" + ")} ${S.fmt}`;
   S.capas.forEach((c, k) => { if (c.on) parCapa(k, c.estilo); }); const s = {capas: JSON.parse(JSON.stringify(S.capas))};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
+function bajarJSON(obj, nombre, etiqueta){ link(new Blob([JSON.stringify(obj, null, 1)], {type: "application/json"}), nombre, etiqueta); verTab("salida"); }
+function leerJSON(file){ return file.text().then(t => JSON.parse(t)); }
+$("pexp").onclick = () => bajarJSON({lab: "LANZA TD Lab", presets: MIOS}, "lanza_td_presets.json", `Descargar presets (${MIOS.length})`);
+$("pimp").onclick = () => $("pfile").click();
+$("pfile").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { const d = await leerJSON(f), lista = d.presets || d.mios || []; lista.forEach(m => { if (m && m.n && m.s){ MIOS = MIOS.filter(x => x.n !== m.n); MIOS.push(m); } }); guardarMios(); renderMios();
+    $("projHint").textContent = `Importados ${lista.length} presets.`; } catch(err){ $("projHint").textContent = "Ese archivo no es de presets del TD Lab."; } };
+$("projSave").onclick = () => { const {par: pp, ...rest} = S; bajarJSON({lab: "LANZA TD Lab", version: 1, ajustes: {...rest, par: pp}, presets: MIOS, pincel: pinPlano(), material: $("srcName").textContent},
+  `lanza_td_proyecto_${new Date().toISOString().slice(0, 10)}.json`, "Descargar proyecto"); };
+$("projOpen").onclick = () => $("projFile").click();
+$("projFile").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { const d = await leerJSON(f); if (!d.ajustes) throw 0; Object.assign(S, d.ajustes); (d.presets || []).forEach(m => { MIOS = MIOS.filter(x => x.n !== m.n); MIOS.push(m); }); guardarMios();
+    if (d.pincel) PIN.capas = pinDesdePlano(d.pincel); PIN.ult = []; if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } lastF = -1e9; _lc = null; sync(); verTab(TAB);
+    $("projHint").textContent = `Proyecto abierto${d.material ? ` (material original: ${d.material}; cargalo de nuevo si no es el mismo)` : ""}.`; }
+  catch(err){ $("projHint").textContent = "No pude abrir ese archivo de proyecto."; } };
 function renderMios(){ const box = $("mine"); box.innerHTML = "";
   MIOS.forEach((m, k) => { const b = document.createElement("button"); b.textContent = m.n;
-    b.onclick = () => { const {par: pp, estilo, capas, ...rest} = m.s; Object.assign(S, rest); if (pp) Object.assign(S.par, pp);
+    b.onclick = () => { const {par: pp, estilo, capas, ...rest} = m.s; if (EX.abierto) cerrarExplorar(); Object.assign(S, rest); if (pp) Object.assign(S.par, pp);
       if (capas) S.capas = JSON.parse(JSON.stringify(capas)); else if (estilo){ S.capas[0].estilo = estilo; S.capas[1].on = S.capas[2].on = false; }
       S.sel = 0; if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } reiniciar(); sync(); };
     const x = document.createElement("span"); x.className = "x"; x.textContent = "×"; x.title = "Borrar";
@@ -1230,7 +1390,7 @@ function renderMios(){ const box = $("mine"); box.innerHTML = "";
 function hint(t, warn){ $("srcHint").textContent = t; $("srcHint").className = "hint" + (warn ? " warn" : ""); }
 function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
-  $("srcName").textContent = label; sync(); }
+  $("srcName").textContent = label; PIN.capas = cargarPin(label); PIN.ult = []; sync(); }
 async function cargarMuestra(){
   const imgs = await Promise.all(MUESTRAS.map(u => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = u; })));
   nuevasFuentes(imgs.map((el, k) => ({el, w: el.width, h: el.height, vid: false, name: "muestra#" + k})), `muestra · ${imgs.length} fotos`); }
@@ -1329,7 +1489,12 @@ async function exportar(){
   } catch(e){ msg("La exportación falló: " + (e.message || e) + ". Probá con calidad Alta o Liviana, o «Grabar en tiempo real».", true); try { ve.close(); } catch(_) {} }
   finally { exportando = false; fi = fiAntes; playing = playAntes; lastF = -1e9; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); } }
 $("exp").onclick = exportar;
-$("cancelExp").onclick = () => { cancelar = true; };
+let colaCorte = false;
+$("cancelExp").onclick = () => { cancelar = true; colaCorte = true; };
+$("expCola").onclick = async () => { const lista = ["916", "feed", "34", "11", "169"].filter(f => (S.cola || []).includes(f)); if (!lista.length || exportando) return;
+  const antes = S.fmt; colaCorte = false; $("expCola").disabled = true;
+  try { for (const [q, f] of lista.entries()){ if (colaCorte) break; S.fmt = f; _lc = null; reiniciar(); sync(); $("expCola").textContent = `Exportando ${q + 1} de ${lista.length}…`; await exportar(); } }
+  finally { S.fmt = antes; _lc = null; lastF = -1e9; sync(); $("expCola").disabled = false; $("expCola").textContent = "Exportar los marcados"; } };
 $("png").onclick = () => cv.toBlob(b => link(b, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
 $("rec").onclick = () => {
   if (recorder) return; if (!cv.captureStream || !window.MediaRecorder){ $("expHint").textContent = "Este navegador no puede grabar el lienzo."; return; }
