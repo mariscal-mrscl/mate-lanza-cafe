@@ -46,6 +46,7 @@ button.main{background:var(--on);color:#000;border-color:var(--on)}
 button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--on);outline-offset:2px}
 .sty{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .sty button{text-align:left;padding:8px 10px;display:flex;flex-direction:column;gap:2px}
+.sty.capas{grid-template-columns:repeat(3,1fr)}
 .sty button small{font:400 10px var(--mono);letter-spacing:.04em;text-transform:none;opacity:.6}
 .hint{font-size:12px;color:var(--mute);margin:0}
 .hint.warn{color:var(--warn)}
@@ -101,7 +102,17 @@ details.log[open] summary::before{content:"− "}
     </div>
 
     <div class="grp">
-      <h2>Estilo</h2>
+      <h2>Capas</h2>
+      <div class="sty capas" id="capasSeg"></div>
+      <div id="capaBox" class="grp" style="padding:0;border:0">
+        <label class="chk"><input type="checkbox" id="capaOn"> Capa activa</label>
+        <div class="row two"><label for="capaModo">Mezcla</label>
+          <select id="capaModo"><option value="suma">Sumar (brilla donde se cruzan)</option><option value="pantalla">Pantalla (suma sin quemar)</option><option value="aclarar">Aclarar (lo más claro de las dos)</option><option value="multiplicar">Multiplicar (recorta con la de abajo)</option><option value="diferencia">Diferencia (invierte donde se cruzan)</option><option value="mezcla">Fundido (opacidad común)</option></select></div>
+        <div class="row"><label for="capaOp">Opacidad</label><input type="range" id="capaOp" min="0" max="1" step="0.01"><output id="capaOpO"></output></div>
+        <label class="chk"><input type="checkbox" id="capaGolpe"> Al golpe: la opacidad sigue al grave (entra con cada pulso)</label>
+      </div>
+      <p class="hint" id="capaHint"></p>
+      <h2>Estilo de la capa</h2>
       <div class="sty" id="estilos"></div>
       <p class="hint" id="styDesc"></p>
       <div class="row"><label for="p1" id="p1L">—</label><input type="range" id="p1" min="0" max="1" step="0.01"><output id="p1O"></output></div>
@@ -139,7 +150,14 @@ details.log[open] summary::before{content:"− "}
       <h2>Terminación</h2>
       <div class="seg" id="color"><button data-c="bn">Blanco y negro</button><button data-c="color">Color</button></div>
       <div class="row"><label for="estela">Estela</label><input type="range" id="estela" min="0" max="0.96" step="0.01"><output id="estelaO"></output></div>
-      <div class="row"><label for="gam">Contraste</label><input type="range" id="gam" min="0.5" max="2.5" step="0.05"><output id="gamO"></output></div>
+      <h3>Luz</h3>
+      <div class="row"><label for="expo">Exposición</label><input type="range" id="expo" min="-2" max="2" step="0.05"><output id="expoO"></output></div>
+      <div class="row"><label for="altas">Recuperar altas</label><input type="range" id="altas" min="0" max="1" step="0.01"><output id="altasO"></output></div>
+      <div class="row"><label for="con">Contraste</label><input type="range" id="con" min="0.4" max="2" step="0.02"><output id="conO"></output></div>
+      <div class="row"><label for="neg">Negros</label><input type="range" id="neg" min="-0.3" max="0.4" step="0.01"><output id="negO"></output></div>
+      <div class="row"><label for="gam">Medios</label><input type="range" id="gam" min="0.5" max="2.5" step="0.05"><output id="gamO"></output></div>
+      <div class="seg"><button id="luzReset">Luz neutra</button></div>
+      <p class="hint">Exposición sube o baja todo (en pasos de diafragma). Recuperar altas comprime lo que se quema sin oscurecer el resto: usalo cuando las capas sumadas revientan. Negros: a la derecha hunde las sombras, a la izquierda las levanta. Medios: a la derecha oscurece los grises.</p>
       <div class="row"><label for="grano">Grano</label><input type="range" id="grano" min="0" max="0.3" step="0.01"><output id="granoO"></output></div>
       <label class="chk"><input type="checkbox" id="inv"> Invertir (tinta negra sobre blanco)</label>
       <p class="hint">Estela: cada cuadro deja rastro en los siguientes, como un Feedback TOP al final de la cadena.</p>
@@ -268,13 +286,17 @@ const STYLES = {
   rd:       {n:"Reacción-difusión", td:"Gray-Scott", d:"Simulación química sembrada por la imagen: crecen corales donde hay luz y células en la sombra. Cada corte siembra de nuevo.", p:["Escala","Velocidad","Imagen"], v:[.35,.5,.2]},
 };
 
-const S = Object.assign({estilo:"feedback", par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false,
+const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
   musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
-if (!STYLES[S.estilo]) S.estilo = "feedback"; if (!FMT[S.fmt]) S.fmt = "916";
+if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
+delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
+if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
-const par = () => S.par[S.estilo] || (S.par[S.estilo] = STYLES[S.estilo].v.slice());
+const parDe = st => S.par[st] || (S.par[st] = STYLES[st].v.slice());
+const cap = () => S.capas[S.sel], estSel = () => cap().estilo, par = () => parDe(estSel());
+const MODOS = {suma: 0, pantalla: 1, aclarar: 2, multiplicar: 3, diferencia: 4, mezcla: 5};
 
 const $ = id => document.getElementById(id);
 const cv = $("cv"), ctx = cv.getContext("2d");
@@ -393,10 +415,25 @@ void main(){
   o = vec4(max(v*mix(vec3(1.), tinte(s), .5), s*uP3*.7), 1.); }`,
 trail: `uniform float uEstela; uniform sampler2D uFx;
 void main(){ o = vec4(max(texture(uFx, vUv).rgb, texture(uPrev, vUv).rgb*uEstela), 1.); }`,
-final: `uniform float uMono, uGam, uGrano, uInv; uniform sampler2D uImg;
+mezcla: `uniform sampler2D uA, uB; uniform float uOp, uModo;
+void main(){
+  vec3 a = texture(uA, vUv).rgb, b0 = texture(uB, vUv).rgb, b = b0*uOp, c;
+  int m = int(uModo + .5);
+  if (m == 0) c = a + b;
+  else if (m == 1) c = 1. - (1. - min(a, 1.))*(1. - min(b, 1.));
+  else if (m == 2) c = max(a, b);
+  else if (m == 3) c = mix(a, a*b0, uOp);
+  else if (m == 4) c = abs(a - b);
+  else c = mix(a, b0, uOp);
+  o = vec4(c, 1.); }`,
+final: `uniform float uMono, uGam, uGrano, uInv, uExpo, uCon, uAltas, uNeg; uniform sampler2D uImg;
 void main(){
   vec3 c = texture(uImg, vUv).rgb;
   c = mix(c, vec3(lum(c)), uMono);
+  c *= exp2(uExpo);
+  if (uAltas > .001){ float k = uAltas*4.; c = (1. - exp(-k*max(c, 0.)))/(1. - exp(-k)); }
+  c = (c - uNeg)/max(.05, 1. - uNeg);
+  c = (c - .5)*uCon + .5;
   c = pow(max(c, 0.), vec3(uGam));
   c += (hash(vUv*uRes + fract(uF*.618)*100.) - .5)*uGrano;
   c = mix(c, 1. - c, uInv);
@@ -545,31 +582,38 @@ function bindT(T){ gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.f : null); gl.viewpo
 function clearT(T){ bindT(T); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); }
 const quad = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-// recursos que dependen del tamaño del formato
+// recursos que dependen del tamaño del formato; cada capa tiene su propia memoria (feedback, slit-scan, simulaciones)
 let R = null;
 function recursos(){
   const {W, H} = F(); if (R && R.W === W && R.H === H) return R;
-  if (R){ [R.fx[0], R.fx[1], R.tr[0], R.tr[1], R.as].forEach(drop); gl.deleteTexture(R.src); gl.deleteTexture(R.hist); gl.deleteFramebuffer(R.histF); }
+  if (R){ [R.tr[0], R.tr[1], R.mx[0], R.mx[1], R.as].forEach(drop); R.L.forEach(soltarCapa); gl.deleteTexture(R.src); }
   glc.width = W; glc.height = H; srcC.width = W; srcC.height = H;
   const src = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, src);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  const hw = W >> 1, hh = H >> 1, hist = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, hist);
-  gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, hw, hh, HN);
-  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  R = {W, H, src, hist, histF: gl.createFramebuffer(), hw, hh, head: 0, fill: 0,
-    fx: [target(W, H, FLT), target(W, H, FLT)], tr: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), i: 0, rd: null, rdKey: "", pt: null, ptKey: ""};
+  R = {W, H, src, hw: W >> 1, hh: H >> 1, tr: [target(W, H, FLT), target(W, H, FLT)], mx: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), i: 0, L: [null, null, null]};
   reiniciar(); return R; }
-function reiniciar(){ if (!R) return; [...R.fx, ...R.tr].forEach(clearT); R.fill = 0; R.head = 0; R.rdReset = true; R.ptReset = true; }
-function rdBuffers(){
-  const div = 2 + Math.round(par()[0]*4), w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
-  if (R.rdKey !== key){ if (R.rd) R.rd.forEach(drop); R.rd = [target(w, h, true, gl.REPEAT), target(w, h, true, gl.REPEAT)]; R.rdKey = key; R.rdI = 0; R.rdReset = true; }
-  return R.rd; }
-function ptBuffers(){
-  const side = Math.round(96 + par()[0]*224), key = String(side);
-  if (R.ptKey !== key){ if (R.pt) R.pt.forEach(drop); R.pt = [target(side, side, true, gl.CLAMP_TO_EDGE, true), target(side, side, true, gl.CLAMP_TO_EDGE, true)]; R.ptKey = key; R.ptI = 0; R.ptReset = true; }
-  return R.pt; }
+function soltarCapa(L){ if (!L) return; L.fx.forEach(drop); if (L.rd) L.rd.forEach(drop); if (L.pt) L.pt.forEach(drop); if (L.hist){ gl.deleteTexture(L.hist); gl.deleteFramebuffer(L.histF); } }
+function capaEstado(k){
+  if (!R.L[k]){ R.L[k] = {fx: [target(R.W, R.H, FLT), target(R.W, R.H, FLT)], i: 0, hist: null, head: 0, fill: 0, rd: null, rdKey: "", pt: null, ptKey: ""}; limpiarCapa(R.L[k]); }
+  return R.L[k]; }
+function limpiarCapa(L){ L.fx.forEach(clearT); L.fill = 0; L.head = 0; L.rdReset = true; L.ptReset = true; }
+function reiniciar(){ if (!R) return; R.tr.forEach(clearT); R.L.forEach(L => { if (L) limpiarCapa(L); }); }
+function histDe(L){
+  if (!L.hist){ L.hist = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, L.hist);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, R.hw, R.hh, HN);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    L.histF = gl.createFramebuffer(); L.fill = 0; L.head = 0; }
+  return L.hist; }
+function rdBuffers(L, p){
+  const div = 2 + Math.round(p[0]*4), w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
+  if (L.rdKey !== key){ if (L.rd) L.rd.forEach(drop); L.rd = [target(w, h, true, gl.REPEAT), target(w, h, true, gl.REPEAT)]; L.rdKey = key; L.rdI = 0; L.rdReset = true; }
+  return L.rd; }
+function ptBuffers(L, p){
+  const side = Math.round(96 + p[0]*224), key = String(side);
+  if (L.ptKey !== key){ if (L.pt) L.pt.forEach(drop); L.pt = [target(side, side, true, gl.CLAMP_TO_EDGE, true), target(side, side, true, gl.CLAMP_TO_EDGE, true)]; L.ptKey = key; L.ptI = 0; L.ptReset = true; }
+  return L.pt; }
 // letras del panel ASCII: una tira con cada carácter de la rampa, en JetBrains Mono, en una textura
 let ATL = null, atlKey = "", atlN = 1;
 const rampa = () => [...(S.aramp.length ? S.aramp : " .#")];
@@ -635,21 +679,16 @@ function fuente(f){
   const seg = segAt(f); if (!seg || !seg.it) return; const it = seg.it, el = it.el;
   if (it.vid && el.readyState < 2) return;
   srcX.imageSmoothingQuality = "high"; srcX.drawImage(el, ...ubicar(it.w, it.h)); }
-function render(f){
-  if (!glOk) return; const r = recursos(), {W, H} = r;
-  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
-  if (f < lastF || f > lastF + 12) reiniciar(); lastF = f;   // saltos grandes o hacia atrás arrancan limpio; si la compu no llega y saltea cuadros, la memoria sigue
-  fuente(f);
-  gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC);
-  const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), p = par(), st = S.estilo, t = f/FPS, inC = f >= TL.body;
-  const U = {uRes: [W, H], uT: t, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uP1: p[0], uP2: p[1], uP3: p[2], uPulso: S.pulso,
-    uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
-  const prev = r.fx[r.i], dst = r.fx[1 - r.i]; r.i = 1 - r.i;
+function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
+  const r = R, {W, H} = r, L = capaEstado(k), p = parDe(st), t = f/FPS;
+  const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
+  const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
   if (st === "slitscan"){   // guarda la fuente en el anillo de cuadros pasados
-    gl.bindFramebuffer(gl.FRAMEBUFFER, r.histF); gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, r.hist, 0, r.head);
+    const hist = histDe(L);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, L.histF); gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, hist, 0, L.head);
     gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad();
-    bindT(dst); use(P.slitscan, {...U, uHead: r.head, uFill: Math.max(1, r.fill + 1)}, {uSrc: r.src, uHist: r.hist}); quad();
-    r.head = (r.head + 1) % HN; r.fill = Math.min(HN, r.fill + 1); }
+    bindT(dst); use(P.slitscan, {...U, uHead: L.head, uFill: Math.max(1, L.fill + 1)}, {uSrc: r.src, uHist: hist}); quad();
+    L.head = (L.head + 1) % HN; L.fill = Math.min(HN, L.fill + 1); }
   else if (st === "agujas"){
     clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H, cols = Math.round(40 + p[0]*130), rows = Math.round(cols*H/W);
     use(P.g_agujas, {uCols: cols, uRows: rows, uAsp: asp, uAmp: p[1]*1.4*(1 + S.pulso*ft.low_e*.8), uTilt: -(.25 + p[2]*.6), uYaw: Math.sin(t*.27)*p[2]*.9}, {uSrc: r.src});
@@ -665,8 +704,8 @@ function render(f){
     use(P.g_malla, {...M, uAxis: 1}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, nx*segs*2);
     gl.disable(gl.BLEND); }
   else if (st === "particulas" && FLT){
-    const pt = ptBuffers(), side = pt[0].w, a = pt[R.ptI], b = pt[1 - R.ptI]; R.ptI = 1 - R.ptI;
-    bindT(b); use(P.pSim, {...U, uReset: R.ptReset ? 1 : 0, uLifeF: 60}, {uSrc: r.src, uState: a.t}); quad(); R.ptReset = false;
+    const pt = ptBuffers(L, p), side = pt[0].w, a = pt[L.ptI], b = pt[1 - L.ptI]; L.ptI = 1 - L.ptI;
+    bindT(b); use(P.pSim, {...U, uReset: L.ptReset ? 1 : 0, uLifeF: 60}, {uSrc: r.src, uState: a.t}); quad(); L.ptReset = false;
     bindT(dst); use(P.fade, {uDecay: .9}, {uPrev: prev.t}); quad();
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     use(P.g_part, {uSide: side, uSize: 2.2*W/1080}, {uSrc: r.src, uState: b.t}); gl.drawArrays(gl.POINTS, 0, side*side);
@@ -680,19 +719,35 @@ function render(f){
       use(P.g_lineas, {uRows: rows, uCols: cols, uAsp: asp, uAmp: p[1]*1.2*(1 + S.pulso*ft.low_e*.6), uTilt: -p[2]*.9}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, rows*cols*2); }
     gl.disable(gl.BLEND); }
   else if (st === "rd" && FLT){
-    const rd = rdBuffers(), iters = 2 + Math.round(p[1]*14), [w, h] = [rd[0].w, rd[0].h];
+    const rd = rdBuffers(L, p), iters = 2 + Math.round(p[1]*14), [w, h] = [rd[0].w, rd[0].h];
     const inject = !inC && (f === seg.f0 || (S.pulso*ft.low_e > .8 && f % Math.round(beatF()) === 0)) ? 1 : 0;
-    for (let k=0; k<iters; k++){ const a = rd[R.rdI], b = rd[1 - R.rdI]; R.rdI = 1 - R.rdI;
-      bindT(b); use(P.rdSim, {...U, uTex: [1/w, 1/h], uReset: R.rdReset ? 1 : 0, uInject: k === 0 ? inject : 0}, {uSrc: r.src, uState: a.t}); quad(); R.rdReset = false; }
-    bindT(dst); use(P.rd, U, {uSrc: r.src, uState: rd[R.rdI].t}); quad(); }
-  else { bindT(dst); use(P[st] && st !== "rd" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
-  const tp = r.tr[r.i], td = r.tr[1 - r.i];   // estela: va y vuelve con el mismo índice que fx
-  bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: dst.t, uPrev: tp.t}); quad();
+    for (let q=0; q<iters; q++){ const a = rd[L.rdI], b = rd[1 - L.rdI]; L.rdI = 1 - L.rdI;
+      bindT(b); use(P.rdSim, {...U, uTex: [1/w, 1/h], uReset: L.rdReset ? 1 : 0, uInject: q === 0 ? inject : 0}, {uSrc: r.src, uState: a.t}); quad(); L.rdReset = false; }
+    bindT(dst); use(P.rd, U, {uSrc: r.src, uState: rd[L.rdI].t}); quad(); }
+  else { bindT(dst); use(P[st] && st !== "rd" && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
+  return dst; }
+function render(f){
+  if (!glOk) return; const r = recursos(), {W, H} = r;
+  if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+  if (f < lastF || f > lastF + 12) reiniciar(); lastF = f;   // saltos grandes o hacia atrás arrancan limpio; si la compu no llega y saltea cuadros, la memoria sigue
+  fuente(f);
+  gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC);
+  const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
+  const base = {uRes: [W, H], uT: f/FPS, uF: f, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
+    uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
+  // capa 1 es la base; las otras se mezclan encima con su modo y opacidad
+  let acc = capaRender(0, S.capas[0].estilo, f, base, ft, seg, inC), m = 0;
+  for (let k=1; k<3; k++){ const c = S.capas[k]; if (!c.on){ if (r.L[k]){ soltarCapa(r.L[k]); r.L[k] = null; } continue; }
+    const out = capaRender(k, c.estilo, f, base, ft, seg, inC), op = c.op*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
+    bindT(dst); use(P.mezcla, {uOp: op, uModo: MODOS[c.modo] || 0}, {uA: acc.t, uB: out.t}); quad(); acc = dst; }
+  const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
+  bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: acc.t, uPrev: tp.t}); quad();
   let img = td;
-  if (S.ascii !== "off"){   // panel ASCII: cada celda toma el brillo del estilo y elige su carácter
+  if (S.ascii !== "off"){   // panel ASCII: cada celda toma el brillo de la mezcla y elige su carácter
     const fs = S.afs*W/1080, at = atlas(); bindT(r.as);
-    use(P.ascii, {...U, uCw: fs*.6, uCh: fs*1.2, uN: atlN, uMix: S.ascii === "sobre" ? S.amix : 0, uTinta: S.color === "color" ? .8 : 0, uGamA: S.agam}, {uImg: td.t, uAtlas: at}); quad(); img = r.as; }
-  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0}, {uImg: img.t}); quad();
+    use(P.ascii, {...base, uCw: fs*.6, uCh: fs*1.2, uN: atlN, uMix: S.ascii === "sobre" ? S.amix : 0, uTinta: S.color === "color" ? .8 : 0, uGamA: S.agam}, {uImg: td.t, uAtlas: at}); quad(); img = r.as; }
+  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
+    uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg}, {uImg: img.t}); quad();
   componer(f);
 }
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
@@ -828,20 +883,28 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
 
 // ─── controles
-const num = ["afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => ["estela","vol","esc","velo","amix"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
+const fmtOut = (k, v) => k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
-    b.onclick = () => { S.estilo = k; reiniciar(); sync(); }; box.append(b); } }
+    b.onclick = () => { cap().estilo = k; if (R && R.L[S.sel]){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } sync(); }; box.append(b); } }
+function botonesCapas(){ const box = $("capasSeg"); box.innerHTML = "";
+  [0, 1, 2].forEach(k => { const b = document.createElement("button"); b.dataset.k = k; b.onclick = () => { S.sel = k; sync(); }; box.append(b); }); }
 function sync(){
   num.forEach(k => { $(k).value = S[k]; $(k + "O").textContent = fmtOut(k, S[k]); });
-  const sty = STYLES[S.estilo], p = par();
+  document.querySelectorAll("#capasSeg button").forEach(b => { const k = +b.dataset.k, c = S.capas[k];
+    b.innerHTML = `Capa ${k + 1}<small>${c.on ? STYLES[c.estilo].n : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
+  $("capaBox").hidden = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaGolpe").checked = !!cap().golpe;
+  const nOn = S.capas.filter(c => c.on).length;
+  $("capaHint").textContent = S.sel === 0 ? `Capa 1 es la base.${nOn > 1 ? ` Hay ${nOn} capas activas; cada una corre su estilo sobre la misma fuente y se mezcla encima.` : " Activá la 2 o la 3 para mezclar otro estilo encima."} Si dos capas usan el mismo estilo, comparten sus parámetros.`
+    : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
+  const est = estSel(), sty = STYLES[est], p = par();
   [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("p" + (i + 1)).value = p[i]; $("p" + (i + 1) + "O").textContent = Math.round(p[i]*100); });
-  if (S.estilo === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, p[1]*3.99|0)];
-  const sinF = (S.estilo === "rd" || S.estilo === "particulas") && !FLT;
+  if (est === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, p[1]*3.99|0)];
+  const sinF = (est === "rd" || est === "particulas") && !FLT;
   $("styDesc").textContent = sty.d + (sinF ? " (Este navegador no puede simularlo: falta textura de punto flotante.)" : "");
   $("styDesc").className = "hint" + (sinF ? " warn" : "");
-  document.querySelectorAll("#estilos button").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === S.estilo));
+  document.querySelectorAll("#estilos button").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === est));
   [["#color button", "c", "color"], ["#orden button", "o", "orden"], ["#musica button", "m", "musica"], ["#fmt button", "f", "fmt"], ["#ajuste button[data-a]", "a", "ajuste"]]
     .forEach(([sel, at, k]) => document.querySelectorAll(sel).forEach(b => b.setAttribute("aria-pressed", b.dataset[at] === S[k])));
   document.querySelectorAll("#asciiSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.x === S.ascii));
@@ -854,10 +917,10 @@ function sync(){
   timeline();
   const b = beatF(); $("bpmO").textContent = (b).toFixed(2).replace(/\.?0+$/, "") + " c";
   $("tiempoHint").textContent = `A ${S.bpm} BPM la negra dura ${b.toFixed(2).replace(/\.?0+$/, "")} cuadros y el compás ${(b*4/FPS).toFixed(2)} s. ${TL.T.length} corte${TL.T.length === 1 ? "" : "s"} en ${(TL.body/FPS).toFixed(2)} s${S.cierre ? " más 3 s de cierre" : ""}.`;
-  $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = sty.n;
+  $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = S.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ");
   if (actx && master) master.gain.value = S.vol;
   $("json").value = JSON.stringify(ajustes()); save(); renderMios(); rearmarAudio(); }
-function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: par(), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
+function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: Object.fromEntries(S.capas.filter(c => c.on).map(c => [c.estilo, parDe(c.estilo)])), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
 const on = (sel, attr, key, extra) => document.querySelectorAll(sel).forEach(b => b.onclick = () => { S[key] = b.dataset[attr]; if (extra) extra(); sync(); });
 on("#color button", "c", "color"); on("#orden button", "o", "orden"); on("#musica button", "m", "musica", () => { $("musHint").className = "hint"; ensureCtx(); });
 on("#fmt button", "f", "fmt", () => { _lc = null; reiniciar(); }); on("#ajuste button[data-a]", "a", "ajuste");
@@ -868,7 +931,12 @@ document.querySelectorAll("#asciiSeg button").forEach(b => b.onclick = () => { S
 $("arampSel").onchange = e => { if (e.target.value !== "custom") S.aramp = e.target.value; else $("arampRow").hidden = false; sync(); };
 $("aramp").oninput = e => { S.aramp = e.target.value; save(); };
 $("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
-$("styReset").onclick = () => { S.par[S.estilo] = STYLES[S.estilo].v.slice(); reiniciar(); sync(); };
+$("styReset").onclick = () => { S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
+$("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
+$("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
+$("capaOp").oninput = e => { cap().op = +e.target.value; sync(); };
+$("capaGolpe").onchange = e => { cap().golpe = e.target.checked; sync(); };
+$("luzReset").onclick = () => { Object.assign(S, {expo: 0, altas: 0, con: 1, neg: 0, gam: 1}); sync(); };
 $("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
 $("bpm").onchange = e => { S.bpm = Math.min(220, Math.max(50, +e.target.value || 96)); sync(); };
 $("frase").onchange = e => { S.frase = e.target.value; sync(); }; $("dur").onchange = e => { S.dur = e.target.value; sync(); };
@@ -887,12 +955,15 @@ cv.addEventListener("dblclick", centrar);
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
-const LOOK = ["ascii","afs","apeso","aramp","agam","amix","estilo","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
-$("psave").onclick = () => { const n = $("pname").value.trim() || `${STYLES[S.estilo].n} ${S.fmt}`, s = {par: {[S.estilo]: par().slice()}};
+const LOOK = ["ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
+$("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname").value.trim() || `${on.map(c => STYLES[c.estilo].n).join(" + ")} ${S.fmt}`;
+  const s = {par: Object.fromEntries(on.map(c => [c.estilo, parDe(c.estilo).slice()])), capas: JSON.parse(JSON.stringify(S.capas))};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
 function renderMios(){ const box = $("mine"); box.innerHTML = "";
   MIOS.forEach((m, k) => { const b = document.createElement("button"); b.textContent = m.n;
-    b.onclick = () => { const {par: pp, ...rest} = m.s; Object.assign(S, rest); Object.assign(S.par, pp); reiniciar(); sync(); };
+    b.onclick = () => { const {par: pp, estilo, capas, ...rest} = m.s; Object.assign(S, rest); Object.assign(S.par, pp);
+      if (capas) S.capas = JSON.parse(JSON.stringify(capas)); else if (estilo){ S.capas[0].estilo = estilo; S.capas[1].on = S.capas[2].on = false; }
+      S.sel = 0; if (R){ R.L.forEach(soltarCapa); R.L = [null, null, null]; } reiniciar(); sync(); };
     const x = document.createElement("span"); x.className = "x"; x.textContent = "×"; x.title = "Borrar";
     x.onclick = e => { e.stopPropagation(); MIOS.splice(k, 1); guardarMios(); renderMios(); }; b.append(x); box.append(b); }); }
 
@@ -993,13 +1064,13 @@ async function exportar(){
         while (ae.encodeQueueSize > 20) await new Promise(r => setTimeout(r, 2)); }
       await ae.flush(); ae.close(); if (errs.length) throw errs[0]; }
     muxer.finalize(); const blob = new Blob([tgt.buffer], {type: "video/mp4"}), mb = (blob.size/1048576).toFixed(1), seg = ((performance.now() - t1)/1000).toFixed(0);
-    link(blob, `lanza_td_${S.estilo}_${S.fmt}_${W}x${H}.mp4`, `Descargar MP4 (${W}×${H}, 24 fps, ${(total/FPS).toFixed(1)} s, ${mb} MB${ac ? ", con sonido" : pcm ? ", sin sonido: el navegador no codifica audio" : ", mudo"})`);
+    link(blob, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}_${W}x${H}.mp4`, `Descargar MP4 (${W}×${H}, 24 fps, ${(total/FPS).toFixed(1)} s, ${mb} MB${ac ? ", con sonido" : pcm ? ", sin sonido: el navegador no codifica audio" : ", mudo"})`);
     $("progBar").style.width = "100%"; msg(`Listo en ${seg} s: ${total} cuadros exactos${ac ? ` con audio ${ac.mux === "aac" ? "AAC" : "Opus"}` : ""}. El archivo está abajo.`);
   } catch(e){ msg("La exportación falló: " + (e.message || e) + ". Probá con calidad Alta o Liviana, o «Grabar en tiempo real».", true); try { ve.close(); } catch(_) {} }
   finally { exportando = false; fi = fiAntes; playing = playAntes; lastF = -9; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); } }
 $("exp").onclick = exportar;
 $("cancelExp").onclick = () => { cancelar = true; };
-$("png").onclick = () => cv.toBlob(b => link(b, `lanza_td_${S.estilo}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
+$("png").onclick = () => cv.toBlob(b => link(b, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
 $("rec").onclick = () => {
   if (recorder) return; if (!cv.captureStream || !window.MediaRecorder){ $("expHint").textContent = "Este navegador no puede grabar el lienzo."; return; }
   const conAudio = soundOn && PLAY && actx;
@@ -1008,14 +1079,14 @@ $("rec").onclick = () => {
   const st = cv.captureStream(FPS); if (conAudio) recDest.stream.getAudioTracks().forEach(t => st.addTrack(t));
   const ch = []; recorder = new MediaRecorder(st, {mimeType: mt, videoBitsPerSecond: 16e6});
   recorder.ondataavailable = e => e.data.size && ch.push(e.data);
-  recorder.onstop = () => { const ext = mt.includes("mp4") ? "mp4" : "webm"; link(new Blob(ch, {type: mt || "video/webm"}), `lanza_td_${S.estilo}_${S.fmt}.${ext}`, `Descargar grabación en tiempo real (${ext}, ${(TL.total/FPS).toFixed(1)} s${conAudio ? ", con sonido" : ", mudo"})`); $("rec").textContent = "Grabar en tiempo real"; };
+  recorder.onstop = () => { const ext = mt.includes("mp4") ? "mp4" : "webm"; link(new Blob(ch, {type: mt || "video/webm"}), `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}.${ext}`, `Descargar grabación en tiempo real (${ext}, ${(TL.total/FPS).toFixed(1)} s${conAudio ? ", con sonido" : ", mudo"})`); $("rec").textContent = "Grabar en tiempo real"; };
   fi = 0; acc = 0; stopAudio(); playing = true; $("play").setAttribute("aria-pressed", true); $("play").textContent = "Pausa"; recorder.start(); $("rec").textContent = "Grabando…"; };
 $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
   try { await navigator.clipboard.writeText(t); $("copy").textContent = "Copiado"; setTimeout(() => $("copy").textContent = "Copiar ajustes", 1500); }
   catch(e){ $("json").focus(); $("json").select(); $("copy").textContent = "Seleccionado: copialo"; } };
 
 // ─── arranque
-botonesEstilo();
+botonesEstilo(); botonesCapas();
 Promise.all([400, S.apeso].map(w => document.fonts.load(`${w} 72px "JetBrains Mono"`))).catch(() => {}).finally(() => { cargarMuestra(); requestAnimationFrame(loop); });
 </script>
 </body></html>
