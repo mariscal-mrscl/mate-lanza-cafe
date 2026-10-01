@@ -44,6 +44,9 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .row.prm select{padding:4px 4px;font-size:11px}
 .rombo{width:18px;height:22px;padding:0;border:0;background:none;color:var(--mute);font-size:13px;line-height:1;cursor:pointer;letter-spacing:0}.rombo:hover{color:var(--on);border:0}
 .rombo.has{color:var(--soft)}.rombo.on{color:var(--on)}
+.row.op{grid-template-columns:96px minmax(0,1fr) 34px 18px}
+#recG[aria-pressed="true"]{background:#c8322a;border-color:#c8322a;color:#fff}.bar b.rec{color:#ff5a4e}
+.toma{display:grid;gap:10px;padding:10px 12px;border:1px solid #c8322a;border-radius:4px}
 .explorar{position:absolute;inset:0;z-index:4;background:var(--bg);display:flex;flex-direction:column;gap:10px;padding:14px 16px;overflow:auto}
 .exBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.exBar b{font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-right:6px}
 .exGrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
@@ -89,7 +92,7 @@ details.log[open] summary::before{content:"− "}
 
 <div class="app">
   <section class="stage" aria-label="Monitor">
-    <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span></div>
+    <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
     <div class="mon" id="mon">
       <canvas id="cv" width="1080" height="1920"></canvas>
       <div class="explorar" id="explorar" hidden>
@@ -131,7 +134,12 @@ details.log[open] summary::before{content:"− "}
 
     <div class="grp">
       <h2>Capas</h2>
-      <div class="seg"><button class="main" id="btnExplorar">Explorar variaciones</button></div>
+      <div class="seg"><button class="main" id="btnExplorar">Explorar variaciones</button><button id="recG" aria-pressed="false" title="Tecla G">● Grabar gestos</button></div>
+      <div class="toma" id="recBox" hidden>
+        <div class="row two"><label for="recSoltar">Al soltar</label><select id="recSoltar"><option value="queda">Queda hasta el final</option><option value="vuelve">Vuelve a como estaba</option></select></div>
+        <div class="seg"><button id="recUndo" disabled>Deshacer toma</button></div>
+        <p class="hint" id="recHint">Mientras corre, mové P1–P3, la opacidad o cambiá de estilo: lo que hagas queda escrito cuadro a cuadro en esta capa y se repite en cada vuelta y en el MP4. Volvé a pasar para corregir un tramo.</p>
+      </div>
       <div class="sty capas" id="capasSeg"></div>
       <div class="row two"><label for="capaZona">Va en</label>
         <select id="capaZona"><option value="todo">Toda la imagen</option><option value="figura">Solo la figura</option><option value="fondo">Solo el fondo</option></select></div>
@@ -139,7 +147,7 @@ details.log[open] summary::before{content:"− "}
         <label class="chk"><input type="checkbox" id="capaOn"> Capa activa</label>
         <div class="row two"><label for="capaModo">Mezcla</label>
           <select id="capaModo"><option value="suma">Sumar (brilla donde se cruzan)</option><option value="pantalla">Pantalla (suma sin quemar)</option><option value="aclarar">Aclarar (lo más claro de las dos)</option><option value="multiplicar">Multiplicar (recorta con la de abajo)</option><option value="diferencia">Diferencia (invierte donde se cruzan)</option><option value="mezcla">Fundido (opacidad común)</option></select></div>
-        <div class="row"><label for="capaOp">Opacidad</label><input type="range" id="capaOp" min="0" max="1" step="0.01"><output id="capaOpO"></output></div>
+        <div class="row op"><label for="capaOp">Opacidad</label><input type="range" id="capaOp" min="0" max="1" step="0.01"><output id="capaOpO"></output><button class="rombo" id="kfOp" title="Keyframe de opacidad en este cuadro">◇</button></div>
         <label class="chk"><input type="checkbox" id="capaGolpe"> Al golpe: la opacidad sigue al grave (entra con cada pulso)</label>
       </div>
       <p class="hint" id="capaHint"></p>
@@ -151,7 +159,7 @@ details.log[open] summary::before{content:"− "}
       <div class="row prm"><label for="p3" id="p3L">—</label><input type="range" id="p3" min="0" max="1" step="0.01"><output id="p3O"></output><button class="rombo" id="kf3" title="Keyframe en este cuadro">◇</button><select id="md3" aria-label="Modulación"><option value="fijo">Fijo</option><option value="grave">Grave</option><option value="agudo">Agudos</option><option value="compas">Onda × compás</option><option value="tiempo">Onda × tiempo</option><option value="azar">Azar × corte</option></select></div>
       <div class="row"><label for="pulso">Pulso</label><input type="range" id="pulso" min="0" max="2" step="0.05"><output id="pulsoO"></output></div>
       <div class="row"><label for="modAmt">Modulación</label><input type="range" id="modAmt" min="0" max="1" step="0.01"><output id="modAmtO"></output></div>
-      <div class="seg"><button id="styReset">Valores de fábrica</button><button id="kfClear">Borrar keyframes de la capa</button></div>
+      <div class="seg"><button id="styReset">Valores de fábrica</button><button id="kfClear">Borrar keyframes y gestos de la capa</button></div>
       <p class="hint" id="kfHint">◇ fija el valor del parámetro en el cuadro donde estás; con dos o más, el parámetro se anima entre ellos (pausá y usá ← → para ir cuadro a cuadro). El menú de la derecha lo hace seguir al grave, a los agudos, a una onda por compás o por tiempo, o a un valor al azar en cada corte; Modulación decide cuánto.</p>
       <h3>Secuencia por corte</h3>
       <label class="chk"><input type="checkbox" id="seqOn"> Esta capa cambia de estilo en los cortes</label>
@@ -323,7 +331,7 @@ details.log[open] summary::before{content:"− "}
           <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
         </ul>
         <h4>Atajos de teclado</h4>
-        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>V</kbd> explorar variaciones</span></div>
+        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>V</kbd> explorar variaciones</span></div>
         <h4>Hereda de la serie</h4>
         <ul>
           <li>24 fps, blanco y negro por defecto, logo arriba y LANZAPOST.COM al pie, cierre de 3 s que aterriza en el logo real.</li>
@@ -367,7 +375,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], recSoltar:"queda", arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -375,7 +383,8 @@ if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
 const parDe = st => S.par[st] || (S.par[st] = STYLES[st].v.slice());   // valores de partida de cada estilo (lo último tocado)
 const parCapa = (k, st) => { const c = S.capas[k]; c.pars = c.pars || {}; return c.pars[st] || (c.pars[st] = parDe(st).slice()); };   // cada capa tiene los suyos
-const cap = () => S.capas[S.sel], estSel = () => cap().estilo, par = () => parCapa(S.sel, estSel());
+const estiloEn = (c, f) => { const L = c.cambios; let e = L[0][1]; for (const [g, st] of L){ if (g > f) break; e = st; } return STYLES[e] ? e : c.estilo; };   // estilos grabados por cuadro
+const cap = () => S.capas[S.sel], estSel = () => cap().cambios && cap().cambios.length ? estiloEn(cap(), fi) : cap().estilo, par = () => parCapa(S.sel, estSel());
 const MODOS = {suma: 0, pantalla: 1, aclarar: 2, multiplicar: 3, diferencia: 4, mezcla: 5};
 
 const $ = id => document.getElementById(id);
@@ -792,7 +801,8 @@ function modVal(src, f, ft, seg, i){ const b = beatF();
 function parBase(k, st, f){ const kf = kfsDe(k, st); return parCapa(k, st).map((v, i) => kf[i].length ? kfVal(kf[i], f) : v); }
 function parEf(k, st, f, ft, seg){ const md = modsDe(k, st), amt = S.capas[k].modAmt ?? .5;
   return parBase(k, st, f).map((v, i) => Math.min(1, Math.max(0, v + (md[i] !== "fijo" ? amt*modVal(md[i], f, ft, seg, i) : 0)))); }
-const estiloDe = (k, seg) => { const c = S.capas[k]; return c.seqOn && c.seq && c.seq.length ? c.seq[Math.floor(((seg && seg.k) || 0)/(c.seqCada || 1)) % c.seq.length] : c.estilo; };
+const opDe = (c, f) => c.kfOp && c.kfOp.length ? kfVal(c.kfOp, f) : c.op;
+const estiloDe = (k, seg, f) => { const c = S.capas[k]; if (c.cambios && c.cambios.length && f != null) return estiloEn(c, f); return c.seqOn && c.seq && c.seq.length ? c.seq[Math.floor(((seg && seg.k) || 0)/(c.seqCada || 1)) % c.seq.length] : c.estilo; };
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
   const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = f/FPS;
   const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
@@ -860,10 +870,10 @@ function render(f, pre = false){
   if (BYPASS && !pre){ bindT(r.mx[0]); use(P.copy, {}, {uSrc: r.src}); quad(); img = r.mx[0]; }   // ver sin efecto (tecla B)
   else {
   // capa 1 es la base; las otras se mezclan encima con su modo y opacidad (y, si se eligió, solo en la figura o en el fondo)
-  let acc = capaRender(0, estiloDe(0, seg), f, base, ft, seg, inC), m = 0;
+  let acc = capaRender(0, estiloDe(0, seg, f), f, base, ft, seg, inC), m = 0;
   if (ZC(S.capas[0])){ const dst = r.mx[m]; m = 1 - m; bindT(dst); use(P.mezcla, {uOp0: 1, uModo: 5, uZonaC: ZC(S.capas[0])}, {uA: r.src, uB: acc.t, uMask: mkT}); quad(); acc = dst; }
   for (let k=1; k<3; k++){ const c = S.capas[k]; if (!c.on){ if (r.L[k]){ soltarCapa(r.L[k]); r.L[k] = null; } continue; }
-    const out = capaRender(k, estiloDe(k, seg), f, base, ft, seg, inC), op = c.op*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
+    const out = capaRender(k, estiloDe(k, seg, f), f, base, ft, seg, inC), op = opDe(c, f)*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
     bindT(dst); use(P.mezcla, {uOp0: op, uModo: MODOS[c.modo] || 0, uZonaC: ZC(c)}, {uA: acc.t, uB: out.t, uMask: mkT}); quad(); acc = dst; }
   const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
   bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: acc.t, uPrev: tp.t}); quad();
@@ -1172,7 +1182,7 @@ function ensureCtx(){ if (!actx){ actx = new AudioContext(); master = actx.creat
 function startAudio(){ stopAudio(); if (!soundOn || !PLAY || !actx) return; const off = fi/FPS; if (off >= PLAY.duration - .02) return;
   srcNode = actx.createBufferSource(); srcNode.buffer = PLAY; srcNode.connect(master); t0 = actx.currentTime + .03; f0 = fi; srcNode.start(t0, off); }
 function stopAudio(){ if (srcNode){ try { srcNode.stop(); } catch(e){} srcNode.disconnect(); srcNode = null; } }
-let fpsE = 0, fpsT = 0, kfVisto = -1; let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
+let fpsE = 0, fpsT = 0, kfVisto = -1, estVisto = ""; let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
 function wrap(){ if (recorder){ recorder.stop(); recorder = null; } fi = 0; stopAudio(); }
 function loop(ts){
   if (!exportando){
@@ -1180,10 +1190,11 @@ function loop(ts){
       if (soundOn && PLAY && actx && !srcNode) startAudio();
       if (srcNode){ const nf = f0 + Math.floor(Math.max(0, actx.currentTime - t0)*FPS); if (nf >= TL.total) wrap(); else fi = nf; acc = 0; }
       else { acc += Math.min(200, ts - (last || ts)); while (acc >= 1000/FPS){ acc -= 1000/FPS; fi++; if (fi >= TL.total) wrap(); } }
-    } else stopAudio();
+      if (REC.t.size) recEscribir();
+    } else { stopAudio(); if (REC.t.size && !playing) recCerrarTodo(); }
     fi = Math.min(fi, TL.total - 1);
     if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ const dt = ts - lastR; lastR = ts; if (dt < 1000) fpsE = fpsE ? fpsE*.9 + dt*.1 : dt;
-      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); if (fi !== kfVisto) slidersKF(); } }
+      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
     if (ts - fpsT > 500){ fpsT = ts; const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
@@ -1200,6 +1211,7 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "Tab" && !e.shiftKey && e.target === document.body){ e.preventDefault(); S.sel = (S.sel + 1) % 3; sync(); verTab("estilo"); return; }
   if (e.code === "KeyB" && !e.repeat){ BYPASS = true; $("bypInfo").hidden = false; return; }
   if (e.code === "KeyK"){ $("kf1").click(); return; }
+  if (e.code === "KeyG" && !e.repeat){ $("recG").click(); return; }
   if (e.code === "KeyV"){ EX.abierto ? cerrarExplorar() : abrirExplorar(); return; }
   if (e.code === "Escape" && EX.abierto){ cerrarExplorar(); return; }
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
@@ -1247,7 +1259,7 @@ const num = ["pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","ape
 const fmtOut = (k, v) => k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
-    b.onclick = () => { cap().estilo = k; if (R && R.L[S.sel]){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
+    b.onclick = () => { recEstilo(k); if (R && R.L[S.sel] && !REC.on){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
 function botonesCapas(){ const box = $("capasSeg"); box.innerHTML = "";
   [0, 1, 2].forEach(k => { const b = document.createElement("button"); b.dataset.k = k; b.onclick = () => { S.sel = k; sync(); }; box.append(b); }); }
 function sync(){
@@ -1258,7 +1270,7 @@ function sync(){
   const nOn = S.capas.filter(c => c.on).length;
   $("capaHint").textContent = S.sel === 0 ? `Capa 1 es la base.${nOn > 1 ? ` Hay ${nOn} capas activas; cada una corre su estilo sobre la misma fuente y se mezcla encima.` : " Activá la 2 o la 3 para mezclar otro estilo encima."} Cada capa guarda sus propios parámetros: dos capas con el mismo estilo se manejan por separado.`
     : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
-  const est = estSel(), sty = STYLES[est], p = par();
+  const est = estSel(), sty = STYLES[est], p = par(); estVisto = est; $("recSoltar").value = S.recSoltar || "queda";
   slidersKF(); const md = modsDe(S.sel, est); [0, 1, 2].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("md" + (i + 1)).value = md[i]; });
   $("modAmt").value = cap().modAmt ?? .5; $("modAmtO").textContent = Math.round((cap().modAmt ?? .5)*100) + "%";
   $("capaZona").value = cap().zona || "todo"; $("capaZona").title = S.sjModo === "off" ? "Elegí un modo en la pestaña Sujeto para separar figura y fondo" : "";
@@ -1312,16 +1324,19 @@ function slidersKF(){ const est = estSel(), kf = kfsDe(S.sel, est), v = parBase(
   [0, 1, 2].forEach(i => { if (document.activeElement !== $("p" + (i + 1))) $("p" + (i + 1)).value = v[i]; $("p" + (i + 1) + "O").textContent = Math.round(v[i]*100);
     const r = $("kf" + (i + 1)), en = kf[i].some(([f]) => f === fi); r.className = "rombo" + (kf[i].length ? " has" : "") + (en ? " on" : ""); r.textContent = en ? "◆" : "◇"; });
   if (estSel() === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, v[1]*3.99|0)];
-  const nk = kf.reduce((a, l) => a + l.length, 0); $("kfClear").disabled = !S.capas.some(c => c.kfs && Object.values(c.kfs).some(l => l.some(x => x.length))) ; }
+  const c = cap(), vo = opDe(c, fi), ko = c.kfOp || [], eo = ko.some(([f]) => f === fi);
+  if (document.activeElement !== $("capaOp")) $("capaOp").value = vo; if (!REC.t.has("op")) $("capaOpO").textContent = Math.round(vo*100) + "%";
+  $("kfOp").className = "rombo" + (ko.length ? " has" : "") + (eo ? " on" : ""); $("kfOp").textContent = eo ? "◆" : "◇";
+  $("kfClear").disabled = !(Object.values(c.kfs || {}).some(l => l.some(x => x.length)) || ko.length || (c.cambios || []).length); }
 function ponerKF(i, f, v){ const L = kfsDe(S.sel, estSel())[i], j = L.findIndex(([g]) => g === f); if (j >= 0) L[j][1] = v; else { L.push([f, v]); L.sort((a, b) => a[0] - b[0]); } }
 [0, 1, 2].forEach(i => {
-  $("p" + (i + 1)).oninput = e => { const v = +e.target.value, L = kfsDe(S.sel, estSel())[i];
+  $("p" + (i + 1)).oninput = e => { const v = +e.target.value, L = kfsDe(S.sel, estSel())[i]; if (recMover(String(i), v)) return;
     if (L.length) ponerKF(i, fi, v); else { par()[i] = v; S.par[estSel()] = par().slice(); } sync(); };
   $("kf" + (i + 1)).onclick = () => { const L = kfsDe(S.sel, estSel())[i], j = L.findIndex(([f]) => f === fi);
     if (j >= 0) L.splice(j, 1); else ponerKF(i, fi, parBase(S.sel, estSel(), fi)[i]); if (playing) $("play").click(); sync(); };
   $("md" + (i + 1)).onchange = e => { modsDe(S.sel, estSel())[i] = e.target.value; sync(); }; });
 $("modAmt").oninput = e => { cap().modAmt = +e.target.value; sync(); };
-$("kfClear").onclick = () => dosToques($("kfClear"), "¿Seguro? Tocá de nuevo", () => { cap().kfs = {}; sync(); });
+$("kfClear").onclick = () => dosToques($("kfClear"), "¿Seguro? Tocá de nuevo", () => { recMarca(); const c = cap(); REC.t.clear(); if (c.cambios && c.cambios.length) c.estilo = estSel(); c.kfs = {}; c.kfOp = []; c.cambios = []; lastF = -1e9; sync(); });
 $("capaZona").onchange = e => { cap().zona = e.target.value; sync(); };
 $("seqOn").onchange = e => { cap().seqOn = e.target.checked; if (cap().seqOn && !(cap().seq || []).length) cap().seq = [estSel()]; sync(); };
 $("seqCada").onchange = e => { cap().seqCada = +e.target.value; sync(); };
@@ -1332,7 +1347,63 @@ document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const
 $("styReset").onclick = () => { cap().pars[estSel()] = STYLES[estSel()].v.slice(); S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
-$("capaOp").oninput = e => { cap().op = +e.target.value; sync(); };
+$("capaOp").oninput = e => { const v = +e.target.value; if (recMover("op", v)) return;
+  if (cap().kfOp && cap().kfOp.length) ponerEn(cap().kfOp, fi, v); else cap().op = v; sync(); };
+$("kfOp").onclick = () => { const c = cap(), L = c.kfOp = c.kfOp || [], j = L.findIndex(([f]) => f === fi);
+  if (j >= 0) L.splice(j, 1); else ponerEn(L, fi, opDe(c, fi)); if (playing) $("play").click(); sync(); };
+
+// ─── grabar gestos: con Grabar activo y el loop corriendo, lo que movés (P1–P3, opacidad, estilo) se escribe como keyframes cuadro a cuadro.
+// Cada toque es una toma: antes del tramo se fija el valor que había (lo anterior no cambia); al soltar el valor queda hasta el final de la vuelta o vuelve a como estaba.
+const REC = {on: false, t: new Map(), hist: []};
+const ponerEn = (L, f, v) => { const j = L.findIndex(([g]) => g === f); if (j >= 0) L[j][1] = v; else { L.push([f, v]); L.sort((a, b) => a[0] - b[0]); } };
+const borrarEn = (L, a, b) => { for (let i = L.length - 1; i >= 0; i--) if (L[i][0] > a && L[i][0] <= b) L.splice(i, 1); };   // claves en (a, b]
+function recMarca(){ REC.hist.push(JSON.stringify(S.capas.map(c => [c.kfs || {}, c.kfOp || [], c.cambios || []]))); if (REC.hist.length > 40) REC.hist.shift(); $("recUndo").disabled = false; }
+function simplificar(L, a, b, eps = .008){   // deja solo las claves necesarias para reproducir el gesto (error medido con la misma curva suave de kfVal)
+  const i0 = L.findIndex(x => x[0] >= a); let i1 = -1; for (let i = L.length - 1; i >= 0; i--) if (L[i][0] <= b){ i1 = i; break; }
+  if (i0 < 0 || i1 - i0 < 2) return; const P = L.slice(i0, i1 + 1), keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1;
+  const rdp = (s, e) => { let m = 0, mi = -1; const [x0, y0] = P[s], [x1, y1] = P[e];
+    for (let i = s + 1; i < e; i++){ const t = (P[i][0] - x0)/(x1 - x0), d = Math.abs(P[i][1] - (y0 + (y1 - y0)*t*t*(3 - 2*t))); if (d > m){ m = d; mi = i; } }
+    if (m > eps){ keep[mi] = 1; rdp(s, mi); rdp(mi, e); } };
+  rdp(0, P.length - 1); L.splice(i0, P.length, ...P.filter((_, i) => keep[i])); }
+const recOrig = (t, f) => t.orig.length ? kfVal(t.orig, f) : t.base;
+function recTocar(id, v){ if (!REC.on || exportando || EX.abierto || (id === "op" && S.sel === 0)) return;
+  const viejo = REC.t.get(id); if (viejo) recFin(id, "nada"); recMarca();
+  const c = cap(), L = id === "op" ? (c.kfOp = c.kfOp || []) : kfsDe(S.sel, estSel())[+id];
+  REC.t.set(id, {L, orig: L.map(x => x.slice()), base: id === "op" ? c.op : par()[+id], v, f0: null, last: null, suelto: false});
+  if (!playing) $("play").click(); }
+function recMover(id, v){ const t = REC.t.get(id); if (!t || t.suelto) return false; t.v = v;
+  $(id === "op" ? "capaOpO" : "p" + (+id + 1) + "O").textContent = Math.round(v*100) + (id === "op" ? "%" : ""); return true; }
+function recSoltar(id){ const t = REC.t.get(id); if (!t || t.suelto) return; if (t.f0 === null){ REC.t.delete(id); return; }
+  if (S.recSoltar === "vuelve") recFin(id, "vuelve"); else t.suelto = true; }
+function recFin(id, modo){ const t = REC.t.get(id); REC.t.delete(id); if (!t || t.f0 === null) return; const L = t.L, N = TL.total;
+  if (modo === "vuelta"){ borrarEn(L, t.last, N); if (t.last < N - 1) ponerEn(L, N - 1, t.v); t.last = N - 1; }   // llegó al final: queda hasta el último cuadro
+  simplificar(L, t.f0, t.last);
+  if (modo === "vuelve"){ const g = Math.min(N - 1, t.last + 6); if (g > t.last){ borrarEn(L, t.last, g); ponerEn(L, g, recOrig(t, g)); } }   // vuelve en un cuarto de segundo
+  else if (modo === "corte" && t.last < N - 1){ const g = t.last + 1; borrarEn(L, t.last, g); ponerEn(L, g, recOrig(t, g)); }
+  save(); }
+function recEscribir(){ const f = fi, N = TL.total;
+  for (const [id, t] of [...REC.t]){
+    if (t.last !== null && f < t.last){ const fin = t.last >= N - 30, sigue = !t.suelto;   // dio la vuelta (o saltaste hacia atrás)
+      recFin(id, fin ? "vuelta" : "corte"); if (!sigue) continue; REC.t.set(id, t); t.orig = t.L.map(x => x.slice()); t.f0 = null; t.last = null; }
+    if (t.f0 === null){ t.f0 = f; if (f > 0){ borrarEn(t.L, f - 2, f - 1); ponerEn(t.L, f - 1, recOrig(t, f - 1)); } }   // el tramo anterior no cambia
+    borrarEn(t.L, t.last === null ? f - 1 : t.last, f); ponerEn(t.L, f, t.v); t.last = f; } }
+function recCerrarTodo(){ [...REC.t.keys()].forEach(id => recFin(id, "corte")); }
+function recActivar(v){ REC.on = v; if (!v) recCerrarTodo(); $("recG").setAttribute("aria-pressed", v); $("recG").textContent = v ? "● Grabando…" : "● Grabar gestos";
+  $("recInfo").hidden = !v; $("recBox").hidden = !v && !REC.hist.length; if (v && !playing) $("play").click(); sync(); }
+function recEstilo(k){ const c = cap();   // con Grabar: el cambio de estilo queda en este cuadro; sin Grabar y con estilos grabados: cambia el estilo del tramo actual
+  if (REC.on && playing){ recMarca(); c.cambios = c.cambios || []; if (!c.cambios.length) c.cambios.push([0, c.estilo]); ponerEn(c.cambios, fi, k); }
+  else if (c.cambios && c.cambios.length){ let j = 0; c.cambios.forEach(([g], i) => { if (g <= fi) j = i; }); c.cambios[j][1] = k; }
+  else { c.estilo = k; return; }
+  c.cambios = c.cambios.filter((x, i, L) => i === 0 || x[1] !== L[i - 1][1]); c.estilo = c.cambios[0][1]; }
+$("recG").onclick = () => recActivar(!REC.on);
+$("recSoltar").onchange = e => { S.recSoltar = e.target.value; save(); };
+$("recUndo").onclick = () => { const h = REC.hist.pop(); if (!h) return; REC.t.clear(); JSON.parse(h).forEach(([kfs, kfOp, cambios], k) => Object.assign(S.capas[k], {kfs, kfOp, cambios}));
+  if (R) { R.L.forEach(soltarCapa); R.L = [null, null, null]; } lastF = -1e9; $("recUndo").disabled = !REC.hist.length; sync(); };
+["p1", "p2", "p3", "capaOp"].forEach((el, i) => { const id = el === "capaOp" ? "op" : String(i);
+  $(el).addEventListener("pointerdown", e => recTocar(id, +e.target.value));
+});
+addEventListener("pointerup", () => { if (!REC.t.size) return; [...REC.t.keys()].forEach(recSoltar); if (REC.on) document.activeElement.blur(); });
+addEventListener("pointercancel", () => [...REC.t.keys()].forEach(recSoltar));
 $("capaGolpe").onchange = e => { cap().golpe = e.target.checked; sync(); };
 $("luzReset").onclick = () => { Object.assign(S, {expo: 0, altas: 0, con: 1, neg: 0, gam: 1}); sync(); };
 $("inv").onchange = e => { S.inv = e.target.checked; sync(); }; $("liviana").onchange = e => { S.liviana = e.target.checked; lastF = -1e9; sync(); }; $("marca").onchange = e => { S.marca = e.target.checked; sync(); }; $("cierre").onchange = e => { S.cierre = e.target.checked; sync(); };
@@ -1392,7 +1463,7 @@ function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pau
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
   $("srcName").textContent = label; PIN.capas = cargarPin(label); PIN.ult = []; sync(); }
 // muestra: el video paraASCII-001 (muestras/ al lado de la página); si no está (el HTML abierto suelto), las fotos de siempre
-async function cargarMuestra(){
+async function cargarMuestra(){ if (location.protocol === "file:") return cargarFotosMuestra();
   try { const r = await fetch("muestras/paraASCII-001.mp4"); if (!r.ok) throw 0;
     const file = new File([await r.blob()], "paraASCII-001.mp4", {type: "video/mp4"}); await cargarArchivos([file]);
     if (items.length && items[0].vid){ $("srcName").textContent = "muestra · paraASCII-001"; return; } } catch(e) {}
@@ -1466,7 +1537,7 @@ async function exportar(){
   const muxer = new M.Muxer({target: tgt, fastStart: "in-memory", firstTimestampBehavior: "offset", video: {codec: "avc", width: W, height: H, frameRate: FPS},
     audio: ac ? {codec: ac.mux, sampleRate: pcm.sampleRate, numberOfChannels: 2} : undefined});
   const ve = new VideoEncoder({output: (ch, meta) => muxer.addVideoChunk(ch, meta), error: e => errs.push(e)}); ve.configure(vc);
-  exportando = true; cancelar = false; stopAudio(); const fiAntes = fi, playAntes = playing; playing = false;
+  if (REC.on) recActivar(false); exportando = true; cancelar = false; stopAudio(); const fiAntes = fi, playAntes = playing; playing = false;
   items.forEach(it => { if (it.vid) it.el.pause(); });
   $("exp").disabled = true; $("rec").disabled = true; $("cancelExp").hidden = false; $("prog").hidden = false; const t1 = performance.now();
   try {
