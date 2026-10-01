@@ -218,13 +218,13 @@ details.log[open] summary::before{content:"− "}
           <li><b>Túnel de feedback</b>: Feedback TOP → Transform TOP (escala y giro) → Composite con la fuente.</li>
           <li><b>Desplazamiento</b>: Noise TOP como mapa → Displace TOP, con un corrimiento de canales.</li>
           <li><b>Slit-scan</b>: Cache TOP + Time Machine TOP; la rampa decide qué franja viene de qué cuadro pasado.</li>
-          <li><b>Curvas de nivel</b>: Level/Lookup sobre la luminancia suavizada, en bandas finas.</li>
-          <li><b>Bordes</b>: Edge TOP (Sobel) con umbral y grosor.</li>
           <li><b>Trama de puntos</b>: semitono hecho en GLSL TOP.</li>
           <li><b>Nube de puntos</b>: TOP to CHOP / instancing de Geometry COMP, con el brillo como Z.</li>
           <li><b>Líneas Rutt-Etra</b>: Line SOP por fila desplazada por la imagen.</li>
           <li><b>Caleidoscopio</b>: GLSL polar con espejos.</li>
           <li><b>Reacción-difusión</b>: Gray-Scott en un GLSL TOP con feedback, sembrado por la imagen.</li>
+          <li><b>Campo de agujas</b>: instancing de líneas, una por punto de la imagen, extruidas en Z por el brillo.</li>
+          <li><b>Esfera</b>: Sphere SOP con la imagen como textura y desplazamiento por brillo, en puntos.</li>
           <li><b>Malla 3D</b>: Grid SOP desplazado por la imagen, dibujado en alambre (Wireframe MAT) con cámara que recorre.</li>
           <li><b>Partículas</b>: Particles GPU que nacen en lo claro de la imagen y viajan por un campo de ruido (curl noise), con estela.</li>
           <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
@@ -257,11 +257,11 @@ const STYLES = {
   feedback: {n:"Túnel de feedback", td:"Feedback TOP", d:"El cuadro anterior vuelve escalado y girado, y lo claro de la fuente se compone encima: el loop clásico de TouchDesigner. El grave empuja el zoom.", p:["Zoom","Giro","Memoria"], v:[.35,.6,.75]},
   desplaza: {n:"Desplazamiento", td:"Noise → Displace", d:"Un ruido fractal empuja los píxeles y separa apenas los canales. El grave sacude, los agudos abren la separación.", p:["Amplitud","Escala","Velocidad"], v:[.35,.3,.3]},
   slitscan: {n:"Slit-scan", td:"Time Machine TOP", d:"Cada franja muestra un instante distinto del pasado. Dirección: vertical, horizontal, radial o por ruido.", p:["Retardo","Dirección","Ondulación"], v:[.85,0,.2]},
-  contornos:{n:"Curvas de nivel", td:"Level → Lookup", d:"La luz se vuelve mapa topográfico: una línea en cada nivel de brillo, que corre con el tiempo.", p:["Líneas","Grosor","Deriva"], v:[.3,.25,.3]},
-  bordes:   {n:"Bordes", td:"Edge TOP", d:"Detección de bordes: el dibujo de la imagen en línea blanca sobre negro.", p:["Umbral","Brillo","Grosor"], v:[.2,.5,.2]},
   trama:    {n:"Trama de puntos", td:"GLSL halftone", d:"Semitono: puntos que crecen con la luz, en una grilla que se puede girar.", p:["Celda","Ángulo","Suavidad"], v:[.2,.25,.1]},
   nube:     {n:"Nube de puntos", td:"Instancing", d:"La imagen como relieve 3D de puntos: el brillo es profundidad y la cámara gira despacio.", p:["Densidad","Profundidad","Giro"], v:[.45,.5,.45]},
   lineas:   {n:"Líneas Rutt-Etra", td:"Line SOP", d:"Líneas de barrido que se levantan con el brillo, como el sintetizador de video Rutt-Etra.", p:["Líneas","Altura","Inclinación"], v:[.4,.45,.4]},
+  agujas:   {n:"Campo de agujas", td:"Instancing de líneas", d:"De cada punto de la imagen sale una aguja que se alarga con el brillo; la cámara orbita el campo. El grave las estira.", p:["Densidad","Largo","Cámara"], v:[.4,.5,.5]},
+  esfera:   {n:"Esfera", td:"Sphere SOP + Displace", d:"La imagen envuelve una esfera de puntos que gira; lo claro se levanta en relieve. El grave la infla.", p:["Densidad","Relieve","Giro"], v:[.5,.45,.4]},
   malla:    {n:"Malla 3D", td:"Grid SOP + Displace", d:"La imagen como terreno de alambre: una grilla que se levanta con el brillo mientras la cámara la recorre. El grave empuja el relieve.", p:["Resolución","Altura","Cámara"], v:[.35,.5,.45]},
   particulas:{n:"Partículas", td:"Particles GPU", d:"Miles de partículas nacen en lo claro de la imagen y viajan por un campo de ruido dejando estela. El grave las acelera.", p:["Cantidad","Remolino","Velocidad"], v:[.5,.4,.4]},
   kaleido:  {n:"Caleidoscopio", td:"GLSL polar", d:"Espejos radiales sobre la imagen; el grave hace girar los gajos.", p:["Gajos","Giro","Zoom"], v:[.3,.6,.45]},
@@ -337,21 +337,6 @@ void main(){
   float d = clamp(k, 0., 1.)*uP1*(uFill - 1.)*(1. - .4*min(1., PK)), d0 = floor(d);
   float l0 = mod(uHead - d0 + ${HN}., ${HN}.), l1 = mod(uHead - d0 - 1. + ${HN}., ${HN}.);
   o = vec4(mix(texture(uHist, vec3(vUv, l0)).rgb, texture(uHist, vec3(vUv, l1)).rgb, d - d0), 1.); }`,
-contornos: `void main(){
-  vec2 px = 3./uRes; float L = 0.;
-  for (int y=-2; y<=2; y++) for (int x=-2; x<=2; x++) L += lum(texture(uSrc, vUv + vec2(x, y)*px).rgb);
-  L /= 25.;
-  float v = L*(5. + uP1*45.) - uT*uP3*1.5, f = fract(v), w = max(fwidth(v), 1e-4)*(.8 + uP2*5.)*(1. + PK);
-  float line = (1. - smoothstep(w*.5, w*1.5, min(f, 1. - f)))*smoothstep(.02, .08, L);
-  o = vec4(line*mix(vec3(1.), tinte(texture(uSrc, vUv).rgb), .6) + L*.08, 1.); }`,
-bordes: `void main(){
-  vec2 p = (1. + uP3*3.)/uRes;
-  float tl = lum(texture(uSrc, vUv + p*vec2(-1, 1)).rgb), t = lum(texture(uSrc, vUv + p*vec2(0, 1)).rgb), tr = lum(texture(uSrc, vUv + p*vec2(1, 1)).rgb);
-  float l = lum(texture(uSrc, vUv + p*vec2(-1, 0)).rgb), r = lum(texture(uSrc, vUv + p*vec2(1, 0)).rgb);
-  float bl = lum(texture(uSrc, vUv + p*vec2(-1, -1)).rgb), b = lum(texture(uSrc, vUv + p*vec2(0, -1)).rgb), br = lum(texture(uSrc, vUv + p*vec2(1, -1)).rgb);
-  float e = length(vec2((tr + 2.*r + br) - (tl + 2.*l + bl), (tl + 2.*t + tr) - (bl + 2.*b + br)));
-  e = clamp((e - uP1*.5)*(1.5 + uP2*6.), 0., 1.)*(1. + PK);
-  o = vec4(e*mix(vec3(1.), tinte(texture(uSrc, vUv).rgb), .5), 1.); }`,
 trama: `void main(){
   float cell = 6. + uP1*42., an = uP2*1.5708;
   mat2 R = mat2(cos(an), sin(an), -sin(an), cos(an));
@@ -449,6 +434,36 @@ void main(){
   gl_Position = vec4(p.x*3./z/uAsp, p.y*3./z, 0., 1.);
   vC = c*(.45 + 1.6*L); }`
 };
+GEO_VS.agujas = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc; uniform float uCols, uRows, uAsp, uAmp, uTilt, uYaw;
+out vec3 vC;
+float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
+void main(){
+  int i = gl_VertexID, n = i/2, cols = int(uCols); float tip = float(i % 2);
+  vec2 uv = (vec2(float(n % cols), float(n / cols)) + .5)/vec2(uCols, uRows);
+  vec3 c = textureLod(uSrc, uv, 0.).rgb; float L = lum(c);
+  vec3 p = vec3((uv.x - .5)*2.*uAsp, (uv.y - .5)*2., tip*L*uAmp);
+  float cy = cos(uYaw), sy = sin(uYaw); p = vec3(cy*p.x + sy*p.z, p.y, -sy*p.x + cy*p.z);
+  float ct = cos(uTilt), st = sin(uTilt); p = vec3(p.x, ct*p.y - st*p.z, st*p.y + ct*p.z);
+  float z = 3. - p.z;
+  gl_Position = vec4(p.x*3./z/uAsp, p.y*3./z, 0., 1.);
+  vC = c*(.2 + 1.3*L)*(.2 + .8*tip)*step(.04, L); }`;
+GEO_VS.esfera = `#version 300 es
+precision highp float;
+uniform sampler2D uSrc; uniform vec2 uGrid; uniform float uAsp, uAmp, uYaw, uSize, uRad;
+out vec3 vC;
+float lum(vec3 c){ return dot(c, vec3(.299, .587, .114)); }
+void main(){
+  int cols = int(uGrid.x), i = gl_VertexID;
+  vec2 uv = (vec2(float(i % cols), float(i / cols)) + .5)/uGrid;
+  vec3 c = textureLod(uSrc, uv, 0.).rgb; float L = lum(c);
+  float lon = uv.x*6.2831853 + uYaw, lat = (uv.y - .5)*3.1415927, r = uRad*(1. + (L - .5)*uAmp);
+  vec3 p = r*vec3(cos(lat)*sin(lon), sin(lat), cos(lat)*cos(lon));
+  float z = 3. - p.z, frente = smoothstep(-.3, .3, p.z);
+  gl_Position = vec4(p.x*3./z/uAsp, p.y*3./z, 0., 1.);
+  gl_PointSize = L < .04 ? 0. : uSize*(3./z)*(.4 + .9*L);
+  vC = c*(.4 + .9*L)*mix(.18, 1., frente); }`;
 GEO_VS.malla = `#version 300 es
 precision highp float;
 uniform sampler2D uSrc; uniform float uNx, uNy, uSeg, uAxis, uAsp, uAmp, uTilt, uYaw;
@@ -478,6 +493,12 @@ void main(){
   gl_PointSize = uSize*(.6 + L);
   vC = c*(.3 + 1.2*L)*sin(3.14159*clamp(s.z, 0., 1.))*.55; }`;
 const GEO_FS = {
+agujas: `#version 300 es
+precision highp float; in vec3 vC; out vec4 o;
+void main(){ o = vec4(vC, 1.); }`,
+esfera: `#version 300 es
+precision highp float; in vec3 vC; out vec4 o;
+void main(){ vec2 q = gl_PointCoord - .5; float d = dot(q, q); if (d > .25) discard; o = vec4(vC*(1. - d*2.), 1.); }`,
 malla: `#version 300 es
 precision highp float; in vec3 vC; out vec4 o;
 void main(){ o = vec4(vC, 1.); }`,
@@ -629,6 +650,14 @@ function render(f){
     gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad();
     bindT(dst); use(P.slitscan, {...U, uHead: r.head, uFill: Math.max(1, r.fill + 1)}, {uSrc: r.src, uHist: r.hist}); quad();
     r.head = (r.head + 1) % HN; r.fill = Math.min(HN, r.fill + 1); }
+  else if (st === "agujas"){
+    clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H, cols = Math.round(40 + p[0]*130), rows = Math.round(cols*H/W);
+    use(P.g_agujas, {uCols: cols, uRows: rows, uAsp: asp, uAmp: p[1]*1.4*(1 + S.pulso*ft.low_e*.8), uTilt: -(.25 + p[2]*.6), uYaw: Math.sin(t*.27)*p[2]*.9}, {uSrc: r.src});
+    gl.drawArrays(gl.LINES, 0, cols*rows*2); gl.disable(gl.BLEND); }
+  else if (st === "esfera"){
+    clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const cols = Math.round(120 + p[0]*280), rows = Math.round(cols/2);
+    use(P.g_esfera, {uGrid: [cols, rows], uAsp: W/H, uAmp: p[1]*.8*(1 + S.pulso*ft.low_e*.8), uYaw: t*(.1 + p[2]*.8), uSize: W/cols*2.2*Math.min(1, W/H), uRad: .78*Math.min(1, W/H)}, {uSrc: r.src});
+    gl.drawArrays(gl.POINTS, 0, cols*rows); gl.disable(gl.BLEND); }
   else if (st === "malla"){
     clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H, ny = Math.round(30 + p[0]*110), nx = Math.max(4, Math.round(ny*asp*.8)), segs = 160;
     const M = {uNx: nx, uNy: ny, uSeg: segs, uAsp: asp, uAmp: p[1]*1.6*(1 + S.pulso*ft.low_e*.7), uTilt: -(.35 + p[2]*.55), uYaw: Math.sin(t*.3)*p[2]*.7};
