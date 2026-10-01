@@ -195,6 +195,10 @@ details.log[open] summary::before{content:"− "}
         <select id="dur"><option value="compases">Por compases</option><option value="video">Lo que dura el primer video</option></select></div>
       <div class="row" id="compasesRow"><label for="compases">Compases</label><input type="range" id="compases" min="1" max="24" step="1"><output id="compasesO"></output></div>
       <p class="hint" id="tiempoHint"></p>
+      <h3>Arranque del efecto</h3>
+      <div class="seg" id="arrSeg"><button data-arr="andando">Ya andando</button><button data-arr="cero">Desde cero</button></div>
+      <div class="row" id="preRow"><label for="pre">Precalentado</label><input type="range" id="pre" min="12" max="144" step="6"><output id="preO"></output></div>
+      <p class="hint">Ya andando: antes del primer cuadro el lab corre el efecto en silencio con el final de la pieza, así el feedback, la estela, las partículas, el slit-scan y la reacción-difusión ya están llenos en el cuadro 0 y el loop no tiene costura. Vale igual en la vista previa, al saltar en la línea de tiempo y en el MP4. Precalentado: cuántos cuadros corre antes (más = memoria más cargada; tarda un poco más al arrancar).</p>
     </div>
 
     <div class="grp">
@@ -313,7 +317,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -700,7 +704,13 @@ const vtDe = (seg, f) => { const d = seg.it.el.duration || 1; return (seg.vt0 + 
 
 // ─── un cuadro
 const Z = {low:0, high:0, low_e:0, high_e:0};
-let FEAT = [], lastF = -9;
+let FEAT = [], lastF = -1e9, CAL = false; const PX1 = new Uint8Array(4);
+// ¿hay que vaciar la memoria? saltos grandes o hacia atrás sí; la vuelta del loop no, si el efecto arranca andando (sigue de largo)
+const salto = f => (f < lastF && !(S.arranque === "andando" && lastF >= TL.total - 24 && f <= 12)) || f > lastF + 12;
+async function calentar(f){   // vacía la memoria y, si arranca andando, corre el efecto los cuadros previos (antes del 0, el final de la pieza)
+  CAL = true; stopAudio(); reiniciar(); const N = S.arranque === "andando" ? Math.min(S.pre, TL.body) : 0;
+  try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; await prepExacto(g); render(g, true); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } }   // leer un píxel obliga a esperar a la placa: no se le amontona trabajo
+  finally { lastF = f - 1; CAL = false; } }
 function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
   const e = Math.exp(-(f % beatF())/3); return {low_e: e, high_e: e*.5}; }
 function fuente(f){
@@ -756,10 +766,10 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
     bindT(dst); use(P.rd, U, {uSrc: r.src, uState: rd[L.rdI].t}); quad(); }
   else { bindT(dst); use(P[st] && st !== "rd" && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   return dst; }
-function render(f){
+function render(f, pre = false){
   if (!glOk) return; const r = recursos(), {W, H} = r;
   if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
-  if (f < lastF || f > lastF + 12) reiniciar(); lastF = f;   // saltos grandes o hacia atrás arrancan limpio; si la compu no llega y saltea cuadros, la memoria sigue
+  if (!pre && salto(f)) reiniciar(); lastF = f;   // si la compu no llega y saltea algunos cuadros, la memoria sigue
   fuente(f);
   gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC);
   const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
@@ -783,7 +793,7 @@ function render(f){
       bindT(r.sj); use(P.sujeto, {...base, uZona: S.sjZona === "fondo" ? 1 : 0, uCant: Math.min(1, S.sj), uOtro: {foto: 0, flash: 1, negro: 2}[S.sjOtro]}, {uImg: img.t, uSrc: r.src, uMask: r.mk}); quad(); img = r.sj; } }
   bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "bn" ? 1 : 0, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
     uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg}, {uImg: img.t}); quad();
-  componer(f);
+  if (!pre) componer(f);
 }
 function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
   const fm = F(), {W, H} = fm, ink = S.inv ? "#000" : "#fff", inC = f >= TL.body;
@@ -938,7 +948,7 @@ async function analizarSujeto(){   // recorre todo el material una vez por modo;
     }
     if (fuenteId === id && S.sjModo === modo) SJ[modo] = id;
   } catch(e){ if (e !== "corte") sjHint("No pude separar el sujeto: " + (e.message || e) + "."); }
-  finally { SJ.corriendo = false; lastF = -9; $("sjProg").hidden = true; if (S.sjModo === modo && SJ[modo] === id) sjHint(); if (S.sjModo !== modo) sync(); } }
+  finally { SJ.corriendo = false; lastF = -1e9; $("sjProg").hidden = true; if (S.sjModo === modo && SJ[modo] === id) sjHint(); if (S.sjModo !== modo) sync(); } }
 // pincel de corrección: trazos en fracciones del lienzo (sirven en cualquier formato), por tramo de cuadros; se suman a la máscara
 const PIN = {modo: "off", capas: [], ult: []};
 function corrimiento(t, f){ const k = t.trk; if (!k) return [0, 0]; const i = Math.max(0, Math.min(k.dx.length - 1, f - k.f0)); return [k.dx[i], k.dy[i]]; }
@@ -968,7 +978,7 @@ async function seguirTrazo(t){
         dx[fr - c0] = (px - cx)/tw; dy[fr - c0] = (py - cy)/th; prev = img;
         if (++hecho % 12 === 0){ $("sjBar").style.width = (100*hecho/n).toFixed(1) + "%"; sjHint(`Siguiendo el trazo: ${hecho} de ${n} cuadros.`); await tick(); } } }
     t.trk = {f0: c0, dx, dy}; }
-  finally { SJ.corriendo = false; playing = playAntes; lastF = -9; $("sjProg").hidden = true; sjHint(); } }
+  finally { SJ.corriendo = false; playing = playAntes; lastF = -1e9; $("sjProg").hidden = true; sjHint(); } }
 document.querySelectorAll("#sjModo [data-s]").forEach(b => b.onclick = () => { S.sjModo = b.dataset.s; if (S.sjModo !== "off" && !S.sj) S.sj = 1; sync(); });
 document.querySelectorAll("#sjZona [data-z]").forEach(b => b.onclick = () => { S.sjZona = b.dataset.z; sync(); });
 document.querySelectorAll("#sjOtro [data-w]").forEach(b => b.onclick = () => { S.sjOtro = b.dataset.w; sync(); });
@@ -1079,13 +1089,13 @@ let fi = 0, playing = true, last = 0, acc = 0, lastR = 0, recorder = null;
 function wrap(){ if (recorder){ recorder.stop(); recorder = null; } fi = 0; stopAudio(); }
 function loop(ts){
   if (!exportando){
-    if (playing){
+    if (playing && !CAL){
       if (soundOn && PLAY && actx && !srcNode) startAudio();
       if (srcNode){ const nf = f0 + Math.floor(Math.max(0, actx.currentTime - t0)*FPS); if (nf >= TL.total) wrap(); else fi = nf; acc = 0; }
       else { acc += Math.min(200, ts - (last || ts)); while (acc >= 1000/FPS){ acc -= 1000/FPS; fi++; if (fi >= TL.total) wrap(); } }
     } else stopAudio();
     fi = Math.min(fi, TL.total - 1);
-    if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo){ lastR = ts; prepVivo(fi, playing); render(fi); }
+    if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ lastR = ts; if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); } }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
     const b = Math.floor(fi/beatF() + 1e-6) % 4; document.querySelectorAll("#beat i").forEach((e, k) => e.classList.toggle("on", k === b));
@@ -1098,11 +1108,11 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
 
 // ─── controles
-const num = ["sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
-const fmtOut = (k, v) => k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vol","esc","px","py"];
+const fmtOut = (k, v) => k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
-    b.onclick = () => { cap().estilo = k; if (R && R.L[S.sel]){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } sync(); }; box.append(b); } }
+    b.onclick = () => { cap().estilo = k; if (R && R.L[S.sel]){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
 function botonesCapas(){ const box = $("capasSeg"); box.innerHTML = "";
   [0, 1, 2].forEach(k => { const b = document.createElement("button"); b.dataset.k = k; b.onclick = () => { S.sel = k; sync(); }; box.append(b); }); }
 function sync(){
@@ -1132,6 +1142,7 @@ function sync(){
   $("pinUndo").disabled = $("pinClear").disabled = sjOff || !PIN.capas.length; if (sjOff && PIN.modo !== "off") PIN.modo = "off";
   if (!SJ.corriendo) sjHint(); if (["ia", "pro", "mov"].includes(S.sjModo)) analizarSujeto();
   cv.style.cursor = PIN.modo !== "off" && !sjOff ? "crosshair" : "";
+  document.querySelectorAll("#arrSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.arr === S.arranque)); $("preRow").hidden = S.arranque !== "andando";
   $("inv").checked = S.inv; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur === "video" && !!vid0();
   $("songBox").hidden = S.musica !== "cancion"; $("songOff").max = SONG ? Math.max(1, Math.floor(SONG.duration - 1)) : 1; $("songOff").value = S.songOff; $("songOffO").textContent = S.songOff.toFixed(2) + " s";
@@ -1153,6 +1164,8 @@ document.querySelectorAll("#asciiSeg button").forEach(b => b.onclick = () => { S
 $("arampSel").onchange = e => { if (e.target.value !== "custom") S.aramp = e.target.value; else $("arampRow").hidden = false; sync(); };
 $("aramp").oninput = e => { S.aramp = e.target.value; save(); };
 $("apeso").addEventListener("change", () => document.fonts.load(`${S.apeso} 72px "JetBrains Mono"`).catch(() => {}));
+document.querySelectorAll("#arrSeg button").forEach(b => b.onclick = () => { S.arranque = b.dataset.arr; lastF = -1e9; sync(); });
+$("pre").addEventListener("change", () => { lastF = -1e9; });
 $("styReset").onclick = () => { S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
@@ -1183,7 +1196,7 @@ cv.addEventListener("dblclick", () => { if (PIN.modo === "off") centrar(); });
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
 const guardarMios = () => { try { localStorage.setItem(MIOS_K, JSON.stringify(MIOS)); } catch(e) {} };
-const LOOK = ["ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
+const LOOK = ["arranque","pre","ascii","afs","apeso","aramp","agam","amix","expo","altas","con","neg","pulso","color","estela","gam","grano","inv","bpm","frase","compases","fmt"];
 $("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname").value.trim() || `${on.map(c => STYLES[c.estilo].n).join(" + ")} ${S.fmt}`;
   const s = {par: Object.fromEntries(on.map(c => [c.estilo, parDe(c.estilo).slice()])), capas: JSON.parse(JSON.stringify(S.capas))};
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
@@ -1197,7 +1210,7 @@ function renderMios(){ const box = $("mine"); box.innerHTML = "";
 
 // ─── carga
 function hint(t, warn){ $("srcHint").textContent = t; $("srcHint").className = "hint" + (warn ? " warn" : ""); }
-function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); }); items = list; fuenteId++; fi = 0; lastF = -9; stopAudio();
+function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
   $("srcName").textContent = label; sync(); }
 async function cargarMuestra(){
@@ -1273,7 +1286,7 @@ async function exportar(){
   items.forEach(it => { if (it.vid) it.el.pause(); });
   $("exp").disabled = true; $("rec").disabled = true; $("cancelExp").hidden = false; $("prog").hidden = false; const t1 = performance.now();
   try {
-    lastF = -9;
+    msg(S.arranque === "andando" ? "Precalentando el efecto…" : "Preparando…"); await calentar(0);
     for (let k=0; k<total; k++){
       if (cancelar || errs.length) break;
       await prepExacto(k); render(k);
@@ -1296,7 +1309,7 @@ async function exportar(){
     link(blob, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}_${W}x${H}.mp4`, `Descargar MP4 (${W}×${H}, 24 fps, ${(total/FPS).toFixed(1)} s, ${mb} MB${ac ? ", con sonido" : pcm ? ", sin sonido: el navegador no codifica audio" : ", mudo"})`);
     $("progBar").style.width = "100%"; msg(`Listo en ${seg} s: ${total} cuadros exactos${ac ? ` con audio ${ac.mux === "aac" ? "AAC" : "Opus"}` : ""}. El archivo está abajo.`);
   } catch(e){ msg("La exportación falló: " + (e.message || e) + ". Probá con calidad Alta o Liviana, o «Grabar en tiempo real».", true); try { ve.close(); } catch(_) {} }
-  finally { exportando = false; fi = fiAntes; playing = playAntes; lastF = -9; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); } }
+  finally { exportando = false; fi = fiAntes; playing = playAntes; lastF = -1e9; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); } }
 $("exp").onclick = exportar;
 $("cancelExp").onclick = () => { cancelar = true; };
 $("png").onclick = () => cv.toBlob(b => link(b, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
