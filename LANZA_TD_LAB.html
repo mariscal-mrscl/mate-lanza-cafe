@@ -120,7 +120,7 @@ details.log[open] summary::before{content:"− "}
       <div class="seg">
         <button id="btnFile">Cargar videos o fotos</button>
         <button id="btnAdd">Sumar</button>
-        <button id="btnSample">Usar muestra</button>
+        <button id="btnSample">Video de muestra</button><button id="btnFotos">Fotos de muestra</button>
       </div>
       <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
       <input type="file" id="fileAdd" accept="video/*,image/*" multiple hidden>
@@ -1391,7 +1391,13 @@ function hint(t, warn){ $("srcHint").textContent = t; $("srcHint").className = "
 function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
   $("srcName").textContent = label; PIN.capas = cargarPin(label); PIN.ult = []; sync(); }
+// muestra: el video paraASCII-001 (muestras/ al lado de la página); si no está (el HTML abierto suelto), las fotos de siempre
 async function cargarMuestra(){
+  try { const r = await fetch("muestras/paraASCII-001.mp4"); if (!r.ok) throw 0;
+    const file = new File([await r.blob()], "paraASCII-001.mp4", {type: "video/mp4"}); await cargarArchivos([file]);
+    if (items.length && items[0].vid){ $("srcName").textContent = "muestra · paraASCII-001"; return; } } catch(e) {}
+  return cargarFotosMuestra(); }
+async function cargarFotosMuestra(){
   const imgs = await Promise.all(MUESTRAS.map(u => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = u; })));
   nuevasFuentes(imgs.map((el, k) => ({el, w: el.width, h: el.height, vid: false, name: "muestra#" + k})), `muestra · ${imgs.length} fotos`); }
 async function abrirVideo(file){
@@ -1417,7 +1423,7 @@ async function cargarArchivos(files, sumar = false){
 $("btnFile").onclick = () => $("file").click(); $("btnAdd").onclick = () => $("fileAdd").click();
 $("file").onchange = e => { if (e.target.files.length) cargarArchivos(e.target.files); e.target.value = ""; };
 $("fileAdd").onchange = e => { if (e.target.files.length) cargarArchivos(e.target.files, true); e.target.value = ""; };
-$("btnSample").onclick = cargarMuestra;
+$("btnSample").onclick = cargarMuestra; $("btnFotos").onclick = cargarFotosMuestra;
 const mon = $("mon");
 mon.addEventListener("dragover", e => { e.preventDefault(); $("drop").hidden = false; });
 mon.addEventListener("dragleave", e => { if (!mon.contains(e.relatedTarget)) $("drop").hidden = true; });
