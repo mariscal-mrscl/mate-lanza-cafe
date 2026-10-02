@@ -44,6 +44,7 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .row.prm select{padding:4px 4px;font-size:11px}
 .rombo{width:18px;height:22px;padding:0;border:0;background:none;color:var(--mute);font-size:13px;line-height:1;cursor:pointer;letter-spacing:0}.rombo:hover{color:var(--on);border:0}
 .rombo.has{color:var(--soft)}.rombo.on{color:var(--on)}
+#msOv{position:absolute;pointer-events:none;z-index:2}
 body.limpio .panel,body.limpio .bar,body.limpio .transport{display:none}body.limpio .app{grid-template-columns:1fr;height:100vh}body.limpio .stage{border:0;background:#000}
 body.limpio .mon{padding:0;height:100vh;background:#000;cursor:none}body.limpio #cv{outline:0;width:100%;height:100%;object-fit:contain;max-width:none;max-height:none}
 .row.op{grid-template-columns:96px minmax(0,1fr) 34px 18px}
@@ -96,7 +97,7 @@ details.log[open] summary::before{content:"− "}
   <section class="stage" aria-label="Monitor">
     <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
     <div class="mon" id="mon">
-      <canvas id="cv" width="1080" height="1920"></canvas>
+      <canvas id="cv" width="1080" height="1920"></canvas><canvas id="msOv" hidden></canvas>
       <div class="explorar" id="explorar" hidden>
         <div class="exBar"><b>Variaciones</b>
           <div class="seg" id="exAmp"><button data-x="poco">Poco</button><button data-x="medio">Medio</button><button data-x="mucho">Mucho</button></div>
@@ -126,6 +127,12 @@ details.log[open] summary::before{content:"− "}
         <button id="btnFile">Cargar videos o fotos</button>
         <button id="btnAdd">Sumar</button>
         <button id="btnSample">Video de muestra</button><button id="btnFotos">Fotos de muestra</button>
+        <button id="btnCam">Cámara en vivo</button>
+      </div>
+      <div id="camBox" hidden style="display:grid;gap:10px">
+        <div class="row two"><label for="camSel">Cámara</label><select id="camSel"></select></div>
+        <label class="chk"><input type="checkbox" id="espejo"> Espejo (como un selfie)</label>
+        <div class="seg"><button id="camStop">Apagar la cámara</button></div>
       </div>
       <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
       <input type="file" id="fileAdd" accept="video/*,image/*" multiple hidden>
@@ -315,6 +322,24 @@ details.log[open] summary::before{content:"− "}
     </div>
 
     <div class="grp">
+      <h2>Máscara de salida</h2>
+      <div class="seg" id="msSeg"><button data-m="off">Sin máscara</button><button data-m="rect">Rectángulo</button><button data-m="elipse">Elipse</button><button data-m="poli">Polígono</button></div>
+      <div id="msBox" style="display:grid;gap:10px">
+        <div class="seg"><button id="msEdit" aria-pressed="false">Editar en el monitor</button><button id="msClear">Borrar puntos</button><button id="msReset">Centrar</button></div>
+        <div class="row ms1"><label for="msX">Centro X</label><input type="range" id="msX" min="0" max="1" step="0.005"><output id="msXO"></output></div>
+        <div class="row ms1"><label for="msY">Centro Y</label><input type="range" id="msY" min="0" max="1" step="0.005"><output id="msYO"></output></div>
+        <div class="row ms1"><label for="msW">Ancho</label><input type="range" id="msW" min="0.05" max="1.4" step="0.005"><output id="msWO"></output></div>
+        <div class="row ms1"><label for="msH">Alto</label><input type="range" id="msH" min="0.05" max="1.4" step="0.005"><output id="msHO"></output></div>
+        <div class="row ms1" id="msRRow"><label for="msR">Redondeo</label><input type="range" id="msR" min="0" max="1" step="0.01"><output id="msRO"></output></div>
+        <div class="row ms1"><label for="msGiro">Giro</label><input type="range" id="msGiro" min="-180" max="180" step="1"><output id="msGiroO"></output></div>
+        <div class="row"><label for="msSuave">Borde suave</label><input type="range" id="msSuave" min="0" max="0.15" step="0.002"><output id="msSuaveO"></output></div>
+        <label class="chk"><input type="checkbox" id="msInv"> Invertir (tapa adentro, deja ver afuera)</label>
+        <label class="chk"><input type="checkbox" id="msMp4"> También en el MP4</label>
+      </div>
+      <p class="hint" id="msHint">Recorta la señal final (la del monitor, la pantalla completa, la ventana aparte y la grabación): afuera queda negro. Para mapear sobre una superficie, elegí Polígono, tocá «Editar en el monitor» y marcá las esquinas con clics; arrastrá un punto para moverlo y Alt+clic lo borra.</p>
+    </div>
+
+    <div class="grp">
       <h2>Salida</h2>
       <div class="seg">
         <button class="main" id="exp">Exportar MP4 (cuadro por cuadro)</button><button id="cancelExp" hidden>Cancelar</button>
@@ -403,7 +428,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", vel:1, vin:0, vout:1, loopModo:"repetir", vueltas:1, segs:12, orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], expVueltas:1, recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -820,13 +845,15 @@ function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || 
 function claveFuente(f){   // qué hay en la fuente: si no cambió, no se vuelve a dibujar ni a subir
   const base = [fuenteId, S.fmt, S.ajuste, S.esc, S.px, S.py, R && R.W].join("|");
   if (f >= TL.body) return base + "|logo|" + logoImg.complete; const seg = segAt(f); if (!seg || !seg.it) return base + "|nada";
-  const it = seg.it; return base + "|" + items.indexOf(it) + (it.vid ? "|" + it.el.currentTime.toFixed(3) + "|" + it.el.readyState : ""); }
+  const it = seg.it; if (it.live) return base + "|vivo|" + (++CAM.n) + "|" + S.espejo; return base + "|" + items.indexOf(it) + (it.vid ? "|" + it.el.currentTime.toFixed(3) + "|" + it.el.readyState : ""); }
 function fuente(f){
   const {W, H} = F(); if (R) R.srcKey = ""; srcX.fillStyle = "#000"; srcX.fillRect(0, 0, W, H);
   if (f >= TL.body){ srcX.drawImage(logoCanvas(), 0, 0); return; }
   const seg = segAt(f); if (!seg || !seg.it) return; const it = seg.it, el = it.el;
-  if (it.vid && el.readyState < 2) return;
-  srcX.imageSmoothingQuality = "high"; srcX.drawImage(el, ...ubicar(it.w, it.h)); }
+  if ((it.vid || it.live) && el.readyState < 2) return;
+  srcX.imageSmoothingQuality = "high";
+  if (it.live && S.espejo){ srcX.save(); srcX.translate(W, 0); srcX.scale(-1, 1); srcX.drawImage(el, ...ubicar(it.w, it.h)); srcX.restore(); }
+  else srcX.drawImage(el, ...ubicar(it.w, it.h)); }
 // valor de un parámetro en un cuadro: keyframes (interpolados suave) y modulación (grave, agudos, ondas, azar por corte)
 function kfVal(L, f){ const n = L.length; if (f <= L[0][0]) return L[0][1]; if (f >= L[n - 1][0]) return L[n - 1][1];
   for (let i=0; i<n - 1; i++){ const [a, va] = L[i], [b, vb] = L[i + 1]; if (f <= b){ const t = (f - a)/(b - a), q = t*t*(3 - 2*t); return va + (vb - va)*q; } } return L[n - 1][1]; }
@@ -940,6 +967,7 @@ function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
     if (head > 0 && logoImg.complete){ ctx.globalAlpha = head; tint(S.inv, () => ctx.drawImage(logoImg, fm.head[0], fm.head[1], 170, 170*122.5/654.9)); ctx.globalAlpha = 1; }
     ctx.font = `400 18px "JetBrains Mono"`; ctx.fillStyle = ink; ctx.textBaseline = "top"; ctx.textAlign = "center";
     ctx.fillText("LANZAPOST.COM".split("").join(String.fromCharCode(8202)), W/2, fm.foot); ctx.restore(); }
+  aplicarMascara(W, H);
 }
 function tint(on, draw){ if (!on){ draw(); return; } ctx.save(); ctx.filter = "invert(1)"; draw(); ctx.restore(); }
 
@@ -954,6 +982,7 @@ function probOf(f, seg){   // {w, h, d, lienzo}: d en el espacio de la imagen (o
     const d = sctx2.getImageData(0, 0, w, h).data, a = new Float32Array(w*h); let lo = 1, hi = 0;
     for (let i=0;i<a.length;i++){ a[i] = (d[i*4]*.299 + d[i*4+1]*.587 + d[i*4+2]*.114)/255; lo = Math.min(lo, a[i]); hi = Math.max(hi, a[i]); }
     const sp = Math.max(.05, hi - lo); for (let i=0;i<a.length;i++) a[i] = (a[i] - lo)/sp; return {w, h, d: a, lienzo: true}; }
+  if (seg.it && seg.it.live) return probVivo(seg.it);
   const it = seg.it, arr = it && it.pm && it.pm[S.sjModo]; if (!arr) return null;
   return arr[it.vid ? Math.min(arr.length - 1, Math.floor(vtDe(seg, f)*FPS)) : 0] || null; }
 const [mkC, mkX] = [document.createElement("canvas"), null], mkCx = mkC.getContext("2d");
@@ -1050,7 +1079,7 @@ async function analizarSujeto(){   // recorre todo el material una vez por modo;
   const prog = n => { $("sjProg").hidden = false; $("sjBar").style.width = (100*n).toFixed(1) + "%"; };
   items.forEach(it => { if (it.vid) it.el.pause(); });
   try {
-    const lista = items.filter(it => !(it.pm && it.pm[modo])), tot = lista.reduce((a, it) => a + (it.vid ? nCuadros(it) : 1), 0); let hecho = 0; const t0 = performance.now();
+    const lista = items.filter(it => !it.live && !(it.pm && it.pm[modo])), tot = lista.reduce((a, it) => a + (it.vid ? nCuadros(it) : 1), 0); let hecho = 0; const t0 = performance.now();
     if (modo === "ia" || modo === "pro"){
       sjHint(modo === "pro" ? "Cargando los modelos…" : "Cargando el modelo de persona…"); await cargarTF();
       if (modo === "pro" && !SJ.u2) SJ.u2 = u2Cargar(U2_MODEL);
@@ -1243,7 +1272,7 @@ function loop(ts){
     } else { stopAudio(); if (REC.t.size && !playing) recCerrarTodo(); }
     fi = Math.min(fi, TL.total - 1);
     if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ const dt = ts - lastR; lastR = ts; if (dt < 1000) fpsE = fpsE ? fpsE*.9 + dt*.1 : dt;
-      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); copiarSalida(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
+      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); copiarSalida(); if (MSED) dibujarGuia(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
     if (ts - fpsT > 500){ fpsT = ts; const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
@@ -1306,8 +1335,8 @@ document.querySelectorAll("#exAmp button").forEach(b => b.onclick = () => { EX.a
 document.querySelector('#exAmp [data-x="medio"]').setAttribute("aria-pressed", "true");
 
 // ─── controles
-const num = ["desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vel","vin","vout","vueltas","segs","vol","esc","px","py"];
-const fmtOut = (k, v) => k === "vel" ? "×" + (+v).toFixed(2) : k === "vin" || k === "vout" ? enSeg(v) : k === "vueltas" ? "×" + v : k === "segs" ? (+v).toFixed(1) + " s" : k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
+const num = ["msX","msY","msW","msH","msR","msGiro","msSuave","desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vel","vin","vout","vueltas","segs","vol","esc","px","py"];
+const fmtOut = (k, v) => k === "msGiro" ? v + "°" : ["msX","msY","msW","msH","msR"].includes(k) ? Math.round(v*100) + "%" : k === "msSuave" ? Math.round(v*1000)/10 + "%" : k === "vel" ? "×" + (+v).toFixed(2) : k === "vin" || k === "vout" ? enSeg(v) : k === "vueltas" ? "×" + v : k === "segs" ? (+v).toFixed(1) + " s" : k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
   for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
     b.onclick = () => { recEstilo(k); if (R && R.L[S.sel] && !REC.on){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
@@ -1347,7 +1376,10 @@ function sync(){
   if (!SJ.corriendo) sjHint(); if (["ia", "pro", "mov"].includes(S.sjModo)) analizarSujeto();
   cv.style.cursor = PIN.modo !== "off" && !sjOff ? "crosshair" : "";
   document.querySelectorAll("#arrSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.arr === S.arranque)); $("preRow").hidden = S.arranque !== "andando";
-  $("libre").checked = S.libre; $("expVueltas").value = String(S.expVueltas || 1); $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
+  $("libre").checked = S.libre; $("espejo").checked = S.espejo; $("msInv").checked = S.msInv; $("msMp4").checked = S.msMp4;
+  document.querySelectorAll("#msSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === S.msForma)); $("msBox").hidden = S.msForma === "off";
+  document.querySelectorAll(".ms1").forEach(r => r.hidden = S.msForma === "poli"); $("msRRow").hidden = S.msForma !== "rect"; $("msClear").hidden = S.msForma !== "poli";
+  if (S.msForma === "off") MSED = false; $("msEdit").setAttribute("aria-pressed", MSED); $("msEdit").textContent = MSED ? "Listo" : "Editar en el monitor"; cv.style.cursor = MSED ? "crosshair" : cv.style.cursor; dibujarGuia(); $("expVueltas").value = String(S.expVueltas || 1); $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur !== "compases";
   document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === S.dur)); document.querySelectorAll("#loopSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === S.loopModo));
   document.querySelectorAll("#velSeg button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === +S.vel));
@@ -1479,15 +1511,16 @@ $("btnTempo").onclick = detectarTempo;
 let drag = null, trazo = null;
 const enLienzo = e => { const r = cv.getBoundingClientRect(); return [Math.round((e.clientX - r.left)/r.width*1e4)/1e4, Math.round((e.clientY - r.top)/r.height*1e4)/1e4]; };
 cv.addEventListener("pointerdown", e => { cv.setPointerCapture(e.pointerId);
+  if (MSED && S.msForma !== "off"){ msPointer(e); return; }
   if (PIN.modo !== "off" && S.sjModo !== "off"){ const cur = fi, rango = S.pinAlc === "cuadro" ? [cur, cur] : S.pinAlc === "toda" ? [0, 1e9] : [cur, 1e9];
     let capa = PIN.capas.find(c => c.f0 === rango[0] && c.f1 === rango[1]); if (!capa){ capa = {f0: rango[0], f1: rango[1], trazos: []}; PIN.capas.push(capa); }
     trazo = {tipo: PIN.modo, r: S.pinR/2/F().W, pts: [enLienzo(e)], fa: cur, capa}; capa.trazos.push(trazo); PIN.ult.push(capa); if (playing) $("play").click(); return; }
   drag = {x: e.clientX, y: e.clientY, px: S.px, py: S.py}; cv.style.cursor = "grabbing"; });
-cv.addEventListener("pointermove", e => { if (trazo){ trazo.pts.push(enLienzo(e)); return; } if (!drag) return; const r = cv.getBoundingClientRect(); S.px = Math.max(-1, Math.min(1, drag.px + 2*(e.clientX - drag.x)/r.width)); S.py = Math.max(-1, Math.min(1, drag.py + 2*(e.clientY - drag.y)/r.height)); sync(); });
-const finTrazo = () => { if (trazo){ const t = trazo; trazo = null; guardarPin(); sync(); if (S.pinSeg && S.pinAlc !== "cuadro") seguirTrazo(t); return; } drag = null; sync(); };
+cv.addEventListener("pointermove", e => { if (msDrag){ msMover(e); return; } if (trazo){ trazo.pts.push(enLienzo(e)); return; } if (!drag) return; const r = cv.getBoundingClientRect(); S.px = Math.max(-1, Math.min(1, drag.px + 2*(e.clientX - drag.x)/r.width)); S.py = Math.max(-1, Math.min(1, drag.py + 2*(e.clientY - drag.y)/r.height)); sync(); });
+const finTrazo = () => { if (msDrag){ msDrag = null; return; } if (trazo){ const t = trazo; trazo = null; guardarPin(); sync(); if (S.pinSeg && S.pinAlc !== "cuadro") seguirTrazo(t); return; } drag = null; sync(); };
 cv.addEventListener("pointerup", finTrazo); cv.addEventListener("pointercancel", finTrazo);
-cv.addEventListener("wheel", e => { e.preventDefault(); S.esc = Math.max(.25, Math.min(3, S.esc*Math.exp(-e.deltaY*.0015))); sync(); }, {passive: false});
-cv.addEventListener("dblclick", () => { if (PIN.modo === "off") centrar(); });
+cv.addEventListener("wheel", e => { e.preventDefault(); if (MSED) return; S.esc = Math.max(.25, Math.min(3, S.esc*Math.exp(-e.deltaY*.0015))); sync(); }, {passive: false});
+cv.addEventListener("dblclick", () => { if (PIN.modo === "off" && !MSED) centrar(); });
 
 // mis presets
 const MIOS_K = "lanzaTdLabMios"; let MIOS = []; try { MIOS = JSON.parse(localStorage.getItem(MIOS_K) || "[]"); } catch(e) {}
@@ -1521,9 +1554,78 @@ function renderMios(){ const box = $("mine"); box.innerHTML = "";
 
 // ─── carga
 function hint(t, warn){ $("srcHint").textContent = t; $("srcHint").className = "hint" + (warn ? " warn" : ""); }
-function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
+function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); if (it.live && !list.includes(it)) camSoltar(it); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
   $("srcName").textContent = label; PIN.capas = cargarPin(label); PIN.ult = []; sync(); }
+// ─── cámara en vivo como fuente (también capturadoras, OBS Virtual Camera o cualquier entrada de video del sistema)
+const CAM = {n: 0, it: null};
+function camSoltar(it){ try { it.stream.getTracks().forEach(t => t.stop()); } catch(e) {} if (CAM.it === it) CAM.it = null; $("camBox").hidden = true; }
+async function camAbrir(deviceId){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ hint("Este navegador no da acceso a la cámara.", true); return; }
+  let st; try { st = await navigator.mediaDevices.getUserMedia({video: {deviceId: deviceId ? {exact: deviceId} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 30}}, audio: false}); }
+  catch(e){ hint(e && e.name === "NotAllowedError" ? "No hay permiso para la cámara. Habilitalo en el candado de la barra de direcciones (en la página publicada puede estar bloqueado: abrí el HTML suelto o desde tu servidor local)." : "No pude abrir la cámara (" + (e && e.name || e) + ").", true); return; }
+  const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.srcObject = st; await v.play().catch(() => {});
+  await new Promise(r => { if (v.videoWidth) r(); else { v.onloadedmetadata = r; setTimeout(r, 3000); } });
+  const tr = st.getVideoTracks()[0], it = {el: v, w: v.videoWidth || 1280, h: v.videoHeight || 720, vid: false, live: true, stream: st, name: tr ? tr.label || "Cámara" : "Cámara"};
+  if (CAM.it) camSoltar(CAM.it); CAM.it = it; if (S.dur === "video") S.dur = "compases"; if (S.musica === "video") S.musica = "pulso";
+  nuevasFuentes([it], "cámara · " + it.name); $("camBox").hidden = false;
+  try { const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput"), sel = $("camSel"), act = tr && tr.getSettings().deviceId;
+    sel.innerHTML = ds.map((d, i) => `<option value="${d.deviceId}">${(d.label || "Cámara " + (i + 1)).replace(/[<&]/g, "")}</option>`).join(""); if (act) sel.value = act; } catch(e) {}
+  hint(`Cámara en vivo: ${it.w}×${it.h}. Todo el procesamiento corre en tu compu. Para guardar, usá «Grabar en tiempo real» en Salida; el sujeto anda por luz, por movimiento o con la IA rápida, cuadro a cuadro.`); }
+$("btnCam").onclick = () => camAbrir(); $("camSel").onchange = e => camAbrir(e.target.value);
+$("camStop").onclick = () => { if (CAM.it){ camSoltar(CAM.it); cargarFotosMuestra(); } };
+$("espejo").onchange = e => { S.espejo = e.target.checked; save(); };
+const camC = document.createElement("canvas"), camX = camC.getContext("2d");
+function probVivo(it){   // sujeto sobre la cámara: por movimiento al vuelo; con IA se recalcula en segundo plano y se usa el último resultado
+  const m = S.sjModo;
+  if (m === "mov"){ const w = 96, h = Math.max(1, Math.round(96*it.h/it.w)); smp2.width = w; smp2.height = h; sctx2.filter = "blur(1.5px)"; sctx2.drawImage(it.el, 0, 0, w, h); sctx2.filter = "none";
+    const d = sctx2.getImageData(0, 0, w, h).data, a = new Float32Array(w*h); for (let i=0;i<a.length;i++) a[i] = (d[i*4] + d[i*4+1] + d[i*4+2])/765;
+    const prev = it.lum, o = new Float32Array(a.length); if (prev && prev.length === a.length) for (let i=0;i<a.length;i++) o[i] = Math.min(1, Math.abs(a[i] - prev[i])*8);
+    it.lum = a; if (it.movP) for (let i=0;i<o.length;i++) o[i] = Math.max(o[i], it.movP[i]*.85); it.movP = o; return espejar({w, h, d: o}, it); }
+  if ((m === "ia" || m === "pro") && SJ.modelo && (m === "ia" || SJ.u2) && !it.ocupado && it.el.readyState >= 2){ it.ocupado = true;
+    const k = Math.min(1, 512/Math.max(it.w, it.h)); camC.width = Math.round(it.w*k); camC.height = Math.round(it.h*k); camX.drawImage(it.el, 0, 0, camC.width, camC.height);
+    (m === "pro" ? recortePro(camC, 224, false) : recorteIA(camC, 192)).then(p => { it.iaP = p; it.iaModo = m; }).catch(() => {}).finally(() => { it.ocupado = false; }); }
+  if (m === "ia" || m === "pro"){ if (!SJ.modelo && !SJ.corriendo) analizarSujeto(); return it.iaModo === m && it.iaP ? espejar(it.iaP, it) : null; }
+  return null; }
+function espejar(p, it){ if (!S.espejo) return p; const {w, h, d} = p, o = new d.constructor(d.length);
+  for (let y=0; y<h; y++) for (let x=0; x<w; x++) o[y*w + x] = d[y*w + (w - 1 - x)]; return {...p, d: o}; }
+
+// ─── máscara de salida: recorta la señal final (monitor, pantalla completa, ventana aparte, grabación y, si se elige, el MP4)
+const SM = document.createElement("canvas"), SMx = SM.getContext("2d"); let smKey = "", MSED = false, msDrag = null;
+const msActiva = () => S.msForma !== "off" && !(S.msForma === "poli" && (S.msPts || []).length < 3);
+function msCamino(x, W, H){ x.beginPath();
+  if (S.msForma === "poli"){ S.msPts.forEach(([a, b], i) => i ? x.lineTo(a*W, b*H) : x.moveTo(a*W, b*H)); x.closePath(); return; }
+  const w = S.msW*W, h = S.msH*H; x.save(); x.translate(S.msX*W, S.msY*H); x.rotate(S.msGiro*Math.PI/180);
+  if (S.msForma === "elipse") x.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); else { const r = S.msR*Math.min(w, h)/2; if (x.roundRect) x.roundRect(-w/2, -h/2, w, h, r); else x.rect(-w/2, -h/2, w, h); }
+  x.restore(); }
+function mascaraSalida(W, H){ const key = [S.msForma, S.msX, S.msY, S.msW, S.msH, S.msR, S.msGiro, S.msSuave, S.msInv, JSON.stringify(S.msPts), W, H].join("|"); if (key === smKey) return SM; smKey = key;
+  SM.width = W; SM.height = H; SMx.clearRect(0, 0, W, H); SMx.fillStyle = "#fff"; SMx.filter = S.msSuave > 0 ? `blur(${(S.msSuave*Math.min(W, H)).toFixed(1)}px)` : "none";
+  if (S.msInv){ SMx.save(); SMx.filter = "none"; SMx.fillRect(0, 0, W, H); SMx.restore(); SMx.globalCompositeOperation = "destination-out"; }
+  msCamino(SMx, W, H); SMx.fill(); SMx.globalCompositeOperation = "source-over"; SMx.filter = "none"; return SM; }
+function aplicarMascara(W, H){ if (!msActiva() || (exportando && !S.msMp4)) return;
+  ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mascaraSalida(W, H), 0, 0);
+  ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; }
+function dibujarGuia(){ const ov = $("msOv"); ov.hidden = !MSED || S.msForma === "off"; if (ov.hidden) return;
+  const r = cv.getBoundingClientRect(), mr = $("mon").getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  Object.assign(ov.style, {left: (r.left - mr.left) + "px", top: (r.top - mr.top) + "px", width: r.width + "px", height: r.height + "px"});
+  const W = Math.round(r.width*dpr), H = Math.round(r.height*dpr); if (ov.width !== W || ov.height !== H){ ov.width = W; ov.height = H; }
+  const x = ov.getContext("2d"); x.clearRect(0, 0, W, H); x.lineWidth = 1.5*dpr; x.strokeStyle = "#ff5a4e"; x.setLineDash([6*dpr, 4*dpr]);
+  if (S.msForma !== "poli" || S.msPts.length > 1){ msCamino(x, W, H); x.stroke(); } x.setLineDash([]); x.fillStyle = "#ff5a4e";
+  if (S.msForma === "poli") S.msPts.forEach(([a, b]) => { x.beginPath(); x.arc(a*W, b*H, 5*dpr, 0, 7); x.fill(); });
+  else { x.beginPath(); x.arc(S.msX*W, S.msY*H, 5*dpr, 0, 7); x.fill(); } }
+function msPointer(e){   // editar sobre el monitor: polígono = clic agrega, arrastrar mueve, Alt+clic borra; rectángulo y elipse = arrastrar mueve el centro
+  const p = enLienzo(e), r = cv.getBoundingClientRect(), cerca = S.msPts.findIndex(([a, b]) => Math.hypot((a - p[0])*r.width, (b - p[1])*r.height) < 12);
+  if (S.msForma === "poli"){ if (e.altKey || e.button === 2){ if (cerca >= 0) S.msPts.splice(cerca, 1); sync(); return; }
+    if (cerca >= 0) msDrag = {i: cerca}; else { S.msPts.push(p); msDrag = {i: S.msPts.length - 1}; } sync(); return; }
+  msDrag = {c: true, dx: S.msX - p[0], dy: S.msY - p[1]}; }
+function msMover(e){ if (!msDrag) return; const p = enLienzo(e).map(v => Math.max(0, Math.min(1, v)));
+  if (msDrag.c){ S.msX = Math.max(0, Math.min(1, p[0] + msDrag.dx)); S.msY = Math.max(0, Math.min(1, p[1] + msDrag.dy)); } else S.msPts[msDrag.i] = p; sync(); }
+document.querySelectorAll("#msSeg button").forEach(b => b.onclick = () => { S.msForma = b.dataset.m; if (S.msForma === "poli" && !S.msPts.length) MSED = true; sync(); });
+$("msEdit").onclick = () => { MSED = !MSED; sync(); };
+$("msClear").onclick = () => { S.msPts = []; sync(); };
+$("msReset").onclick = () => { Object.assign(S, {msX: .5, msY: .5, msGiro: 0}); sync(); };
+$("msInv").onchange = e => { S.msInv = e.target.checked; sync(); }; $("msMp4").onchange = e => { S.msMp4 = e.target.checked; sync(); };
+cv.addEventListener("contextmenu", e => { if (MSED) e.preventDefault(); });
 // muestra: el video paraASCII-001 (muestras/ al lado de la página); si no está (el HTML abierto suelto), las fotos de siempre
 async function cargarMuestra(){ if (location.protocol === "file:") return cargarFotosMuestra();
   try { const r = await fetch("muestras/paraASCII-001.mp4"); if (!r.ok) throw 0;
@@ -1591,6 +1693,7 @@ function repetirAudio(buf, n){   // el cuerpo de la pieza n veces y el cierre un
     for (let v=1; v<n; v++) for (let i=0; i<96; i++){ const j = v*b + i; d[j] *= i/96; } }   // sin chasquido en cada vuelta
   return out; }
 async function exportar(){
+  if (items.some(it => it.live)){ $("expHint").textContent = "Con la cámara en vivo no hay cuadros fijos para exportar uno por uno: usá «Grabar en tiempo real» (graba lo que se ve, con la máscara y el sonido)."; $("expHint").className = "hint warn"; return; }
   const eh = $("expHint"), msg = (t, warn) => { eh.textContent = t; eh.className = "hint" + (warn ? " warn" : ""); };
   if (!glOk){ msg("Sin WebGL2 no hay nada que exportar.", true); return; }
   if (!window.VideoEncoder || !window.VideoFrame){ msg("Este navegador no puede codificar video cuadro por cuadro. Usá Chrome o Edge, o «Grabar en tiempo real».", true); return; }
@@ -1677,7 +1780,7 @@ $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
   catch(e){ $("json").focus(); $("json").select(); $("copy").textContent = "Seleccionado: copialo"; } };
 
 // ─── pestañas del panel: cada sección en su lugar, sin scroll largo (la elegida se recuerda)
-const TABS = {Fuente: "material", Clip: "material", Capas: "estilo", ASCII: "estilo", Sujeto: "sujeto", "Terminación": "luz", Tiempo: "ritmo", "Música": "ritmo", Encuadre: "salida", "Mis presets": "salida", Salida: "salida"};
+const TABS = {Fuente: "material", Clip: "material", "Máscara de salida": "salida", Capas: "estilo", ASCII: "estilo", Sujeto: "sujeto", "Terminación": "luz", Tiempo: "ritmo", "Música": "ritmo", Encuadre: "salida", "Mis presets": "salida", Salida: "salida"};
 const grupos = [...document.querySelectorAll(".panel > .grp")].map(g => { const h = g.querySelector("h2, summary"); g.dataset.tab = h && TABS[h.textContent.trim()] || "salida"; return g; });
 let TAB = "estilo"; try { TAB = localStorage.getItem("lanzaTdLabTab") || TAB; } catch(e) {}
 function verTab(t){ TAB = t; try { localStorage.setItem("lanzaTdLabTab", t); } catch(e) {} grupos.forEach(g => g.hidden = g.dataset.tab !== t);
