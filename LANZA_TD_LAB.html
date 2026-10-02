@@ -326,6 +326,8 @@ details.log[open] summary::before{content:"− "}
       <div class="seg" id="msSeg"><button data-m="off">Sin máscara</button><button data-m="rect">Rectángulo</button><button data-m="elipse">Elipse</button><button data-m="poli">Polígono</button></div>
       <div id="msBox" style="display:grid;gap:10px">
         <div class="seg"><button id="msEdit" aria-pressed="false">Editar en el monitor</button><button id="msClear">Borrar puntos</button><button id="msReset">Centrar</button></div>
+        <div class="seg"><button id="msKf" aria-pressed="false" title="Tecla M">◇ Keyframe</button><button id="msPrev" aria-label="Keyframe anterior">◀</button><button id="msNext" aria-label="Keyframe siguiente">▶</button><button id="msKfClear">Borrar keyframes</button></div>
+        <p class="hint" id="msKfHint"></p>
         <div class="row ms1"><label for="msX">Centro X</label><input type="range" id="msX" min="0" max="1" step="0.005"><output id="msXO"></output></div>
         <div class="row ms1"><label for="msY">Centro Y</label><input type="range" id="msY" min="0" max="1" step="0.005"><output id="msYO"></output></div>
         <div class="row ms1"><label for="msW">Ancho</label><input type="range" id="msW" min="0.05" max="1.4" step="0.005"><output id="msWO"></output></div>
@@ -384,7 +386,7 @@ details.log[open] summary::before{content:"− "}
           <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
         </ul>
         <h4>Atajos de teclado</h4>
-        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>V</kbd> explorar variaciones</span></div>
+        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>M</kbd> keyframe de la máscara</span><span><kbd>V</kbd> explorar variaciones</span></div>
         <h4>Hereda de la serie</h4>
         <ul>
           <li>24 fps, blanco y negro por defecto, logo arriba y LANZAPOST.COM al pie, cierre de 3 s que aterriza en el logo real.</li>
@@ -428,7 +430,7 @@ const STYLES = {
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", vel:1, vin:0, vout:1, loopModo:"repetir", vueltas:1, segs:12, orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], msKfs:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -967,7 +969,7 @@ function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
     if (head > 0 && logoImg.complete){ ctx.globalAlpha = head; tint(S.inv, () => ctx.drawImage(logoImg, fm.head[0], fm.head[1], 170, 170*122.5/654.9)); ctx.globalAlpha = 1; }
     ctx.font = `400 18px "JetBrains Mono"`; ctx.fillStyle = ink; ctx.textBaseline = "top"; ctx.textAlign = "center";
     ctx.fillText("LANZAPOST.COM".split("").join(String.fromCharCode(8202)), W/2, fm.foot); ctx.restore(); }
-  aplicarMascara(W, H);
+  aplicarMascara(W, H, f);
 }
 function tint(on, draw){ if (!on){ draw(); return; } ctx.save(); ctx.filter = "invert(1)"; draw(); ctx.restore(); }
 
@@ -1272,7 +1274,7 @@ function loop(ts){
     } else { stopAudio(); if (REC.t.size && !playing) recCerrarTodo(); }
     fi = Math.min(fi, TL.total - 1);
     if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ const dt = ts - lastR; lastR = ts; if (dt < 1000) fpsE = fpsE ? fpsE*.9 + dt*.1 : dt;
-      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); render(fi); copiarSalida(); if (MSED) dibujarGuia(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
+      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); if ((S.msKfs || []).length && fi !== msVisto && !msDrag && !msPulsado) msDesdeKf(); render(fi); copiarSalida(); if (MSED) dibujarGuia(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
     if (ts - fpsT > 500){ fpsT = ts; const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
@@ -1293,6 +1295,7 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
   if (e.code === "KeyV"){ EX.abierto ? cerrarExplorar() : abrirExplorar(); return; }
   if (e.code === "Escape" && EX.abierto){ cerrarExplorar(); return; }
   if (e.code === "Escape" && document.body.classList.contains("limpio")){ pantallaLimpia(false); return; }
+  if (e.code === "KeyM" && !e.repeat && S.msForma !== "off"){ $("msKf").click(); return; }
   if (e.code === "KeyF" && !e.repeat){ pantallaLimpia(!document.body.classList.contains("limpio")); return; }
   if (e.code === "Space"){ e.preventDefault(); $("play").click(); } if (e.code === "ArrowRight"){ fi = Math.min(TL.total - 1, fi + 1); stopAudio(); } if (e.code === "ArrowLeft"){ fi = Math.max(0, fi - 1); stopAudio(); } });
 
@@ -1379,7 +1382,7 @@ function sync(){
   $("libre").checked = S.libre; $("espejo").checked = S.espejo; $("msInv").checked = S.msInv; $("msMp4").checked = S.msMp4;
   document.querySelectorAll("#msSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === S.msForma)); $("msBox").hidden = S.msForma === "off";
   document.querySelectorAll(".ms1").forEach(r => r.hidden = S.msForma === "poli"); $("msRRow").hidden = S.msForma !== "rect"; $("msClear").hidden = S.msForma !== "poli";
-  if (S.msForma === "off") MSED = false; $("msEdit").setAttribute("aria-pressed", MSED); $("msEdit").textContent = MSED ? "Listo" : "Editar en el monitor"; cv.style.cursor = MSED ? "crosshair" : cv.style.cursor; dibujarGuia(); $("expVueltas").value = String(S.expVueltas || 1); $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
+  if (S.msForma === "off") MSED = false; msUI(); $("msEdit").setAttribute("aria-pressed", MSED); $("msEdit").textContent = MSED ? "Listo" : "Editar en el monitor"; cv.style.cursor = MSED ? "crosshair" : cv.style.cursor; dibujarGuia(); $("expVueltas").value = String(S.expVueltas || 1); $("inv").checked = S.inv; $("liviana").checked = S.liviana; $("marca").checked = S.marca; $("cierre").checked = S.cierre;
   $("bpm").value = S.bpm; $("frase").value = S.frase; $("dur").value = S.dur; $("compasesRow").hidden = S.dur !== "compases";
   document.querySelectorAll("#durSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.d === S.dur)); document.querySelectorAll("#loopSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === S.loopModo));
   document.querySelectorAll("#velSeg button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === +S.vel));
@@ -1592,18 +1595,18 @@ function espejar(p, it){ if (!S.espejo) return p; const {w, h, d} = p, o = new d
 
 // ─── máscara de salida: recorta la señal final (monitor, pantalla completa, ventana aparte, grabación y, si se elige, el MP4)
 const SM = document.createElement("canvas"), SMx = SM.getContext("2d"); let smKey = "", MSED = false, msDrag = null;
-const msActiva = () => S.msForma !== "off" && !(S.msForma === "poli" && (S.msPts || []).length < 3);
-function msCamino(x, W, H){ x.beginPath();
-  if (S.msForma === "poli"){ S.msPts.forEach(([a, b], i) => i ? x.lineTo(a*W, b*H) : x.moveTo(a*W, b*H)); x.closePath(); return; }
-  const w = S.msW*W, h = S.msH*H; x.save(); x.translate(S.msX*W, S.msY*H); x.rotate(S.msGiro*Math.PI/180);
-  if (S.msForma === "elipse") x.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); else { const r = S.msR*Math.min(w, h)/2; if (x.roundRect) x.roundRect(-w/2, -h/2, w, h, r); else x.rect(-w/2, -h/2, w, h); }
+const msActiva = (m = S) => S.msForma !== "off" && !(S.msForma === "poli" && (m.msPts || []).length < 3);
+function msCamino(x, W, H, m = S){ x.beginPath();
+  if (S.msForma === "poli"){ m.msPts.forEach(([a, b], i) => i ? x.lineTo(a*W, b*H) : x.moveTo(a*W, b*H)); x.closePath(); return; }
+  const w = m.msW*W, h = m.msH*H; x.save(); x.translate(m.msX*W, m.msY*H); x.rotate(m.msGiro*Math.PI/180);
+  if (S.msForma === "elipse") x.ellipse(0, 0, w/2, h/2, 0, 0, Math.PI*2); else { const r = m.msR*Math.min(w, h)/2; if (x.roundRect) x.roundRect(-w/2, -h/2, w, h, r); else x.rect(-w/2, -h/2, w, h); }
   x.restore(); }
-function mascaraSalida(W, H){ const key = [S.msForma, S.msX, S.msY, S.msW, S.msH, S.msR, S.msGiro, S.msSuave, S.msInv, JSON.stringify(S.msPts), W, H].join("|"); if (key === smKey) return SM; smKey = key;
-  SM.width = W; SM.height = H; SMx.clearRect(0, 0, W, H); SMx.fillStyle = "#fff"; SMx.filter = S.msSuave > 0 ? `blur(${(S.msSuave*Math.min(W, H)).toFixed(1)}px)` : "none";
+function mascaraSalida(W, H, m){ const key = [S.msForma, S.msInv, JSON.stringify(m), W, H].join("|"); if (key === smKey) return SM; smKey = key;
+  SM.width = W; SM.height = H; SMx.clearRect(0, 0, W, H); SMx.fillStyle = "#fff"; SMx.filter = m.msSuave > 0 ? `blur(${(m.msSuave*Math.min(W, H)).toFixed(1)}px)` : "none";
   if (S.msInv){ SMx.save(); SMx.filter = "none"; SMx.fillRect(0, 0, W, H); SMx.restore(); SMx.globalCompositeOperation = "destination-out"; }
-  msCamino(SMx, W, H); SMx.fill(); SMx.globalCompositeOperation = "source-over"; SMx.filter = "none"; return SM; }
-function aplicarMascara(W, H){ if (!msActiva() || (exportando && !S.msMp4)) return;
-  ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mascaraSalida(W, H), 0, 0);
+  msCamino(SMx, W, H, m); SMx.fill(); SMx.globalCompositeOperation = "source-over"; SMx.filter = "none"; return SM; }
+function aplicarMascara(W, H, f){ const m = msVal(f); if (!msActiva(m) || (exportando && !S.msMp4)) return;
+  ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mascaraSalida(W, H, m), 0, 0);
   ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; }
 function dibujarGuia(){ const ov = $("msOv"); ov.hidden = !MSED || S.msForma === "off"; if (ov.hidden) return;
   const r = cv.getBoundingClientRect(), mr = $("mon").getBoundingClientRect(), dpr = devicePixelRatio || 1;
@@ -1615,15 +1618,38 @@ function dibujarGuia(){ const ov = $("msOv"); ov.hidden = !MSED || S.msForma ===
   else { x.beginPath(); x.arc(S.msX*W, S.msY*H, 5*dpr, 0, 7); x.fill(); } }
 function msPointer(e){   // editar sobre el monitor: polígono = clic agrega, arrastrar mueve, Alt+clic borra; rectángulo y elipse = arrastrar mueve el centro
   const p = enLienzo(e), r = cv.getBoundingClientRect(), cerca = S.msPts.findIndex(([a, b]) => Math.hypot((a - p[0])*r.width, (b - p[1])*r.height) < 12);
-  if (S.msForma === "poli"){ if (e.altKey || e.button === 2){ if (cerca >= 0) S.msPts.splice(cerca, 1); sync(); return; }
-    if (cerca >= 0) msDrag = {i: cerca}; else { S.msPts.push(p); msDrag = {i: S.msPts.length - 1}; } sync(); return; }
+  if (S.msForma === "poli"){ if (e.altKey || e.button === 2){ if (cerca >= 0) S.msPts.splice(cerca, 1); msTocar(); sync(); return; }
+    if (cerca >= 0) msDrag = {i: cerca}; else { S.msPts.push(p); msDrag = {i: S.msPts.length - 1}; msTocar(); } sync(); return; }
   msDrag = {c: true, dx: S.msX - p[0], dy: S.msY - p[1]}; }
 function msMover(e){ if (!msDrag) return; const p = enLienzo(e).map(v => Math.max(0, Math.min(1, v)));
-  if (msDrag.c){ S.msX = Math.max(0, Math.min(1, p[0] + msDrag.dx)); S.msY = Math.max(0, Math.min(1, p[1] + msDrag.dy)); } else S.msPts[msDrag.i] = p; sync(); }
+  if (msDrag.c){ S.msX = Math.max(0, Math.min(1, p[0] + msDrag.dx)); S.msY = Math.max(0, Math.min(1, p[1] + msDrag.dy)); } else S.msPts[msDrag.i] = p; msTocar(); sync(); }
+// keyframes de la máscara: cada uno guarda la forma entera (centro, tamaño, redondeo, giro, borde y puntos); entre dos, se interpola suave.
+// Con keyframes, lo que muevas corrige (o crea) el del cuadro actual; con Grabar gestos activo y corriendo, arrastrar la máscara la graba cuadro a cuadro.
+const MSK = ["msX", "msY", "msW", "msH", "msR", "msGiro", "msSuave"];
+const msFoto = () => ({...Object.fromEntries(MSK.map(k => [k, S[k]])), msPts: (S.msPts || []).map(q => q.slice())});
+function msVal(f){ const L = S.msKfs || []; if (!L.length) return msFoto(); if (f <= L[0][0]) return L[0][1]; if (f >= L[L.length - 1][0]) return L[L.length - 1][1];
+  let i = 0; while (L[i + 1][0] < f) i++; const [fa, a] = L[i], [fb, b] = L[i + 1], t = (f - fa)/(fb - fa), q = t*t*(3 - 2*t), o = {};
+  MSK.forEach(k => o[k] = a[k] + (b[k] - a[k])*q);
+  o.msPts = a.msPts.length === b.msPts.length ? a.msPts.map((pa, j) => [pa[0] + (b.msPts[j][0] - pa[0])*q, pa[1] + (b.msPts[j][1] - pa[1])*q]) : (q < 1 ? a : b).msPts; return o; }
+let msVisto = -1, msPulsado = false;
+function msTocar(){ const L = S.msKfs = S.msKfs || []; if (!L.length && !(REC.on && playing)) return;
+  const j = L.findIndex(([g]) => g === fi), v = msFoto(); if (j >= 0) L[j][1] = v; else { L.push([fi, v]); L.sort((a, b) => a[0] - b[0]); } msUI(); }
+function msUI(){ const L = S.msKfs || [], en = L.some(([g]) => g === fi); $("msKf").setAttribute("aria-pressed", en); $("msKf").textContent = (en ? "◆" : "◇") + " Keyframe";
+  $("msPrev").disabled = !L.some(([g]) => g < fi); $("msNext").disabled = !L.some(([g]) => g > fi); $("msKfClear").disabled = !L.length;
+  $("msKfHint").textContent = L.length ? `${L.length} keyframe${L.length === 1 ? "" : "s"} en ${L.map(([g]) => (g/FPS).toFixed(2) + " s").join(" · ")}. Lo que muevas corrige el keyframe de este cuadro (o crea uno).` : "◇ guarda la máscara en este cuadro; con dos o más se anima entre ellos. Con Grabar gestos activo, arrastrala mientras corre y queda grabada."; }
+function msDesdeKf(){ msVisto = fi; const v = msVal(fi); MSK.forEach(k => { S[k] = v[k]; if (document.activeElement !== $(k)){ $(k).value = v[k]; } $(k + "O").textContent = fmtOut(k, +v[k].toFixed(3)); });
+  S.msPts = v.msPts.map(q => q.slice()); msUI(); dibujarGuia(); }
+$("msKf").onclick = () => { const L = S.msKfs = S.msKfs || [], j = L.findIndex(([g]) => g === fi);
+  if (j >= 0) L.splice(j, 1); else { L.push([fi, msFoto()]); L.sort((a, b) => a[0] - b[0]); } if (playing) $("play").click(); sync(); };
+const msIr = d => { const L = S.msKfs || [], g = d < 0 ? L.map(x => x[0]).filter(x => x < fi).pop() : (L.find(([x]) => x > fi) || [])[0]; if (g == null) return; if (playing) $("play").click(); fi = g; stopAudio(); msDesdeKf(); sync(); };
+$("msPrev").onclick = () => msIr(-1); $("msNext").onclick = () => msIr(1);
+$("msKfClear").onclick = () => dosToques($("msKfClear"), "¿Seguro? Tocá de nuevo", () => { S.msKfs = []; sync(); });
+MSK.forEach(k => { $(k).addEventListener("input", msTocar); $(k).addEventListener("pointerdown", () => { msPulsado = true; }); });
+addEventListener("pointerup", () => { msPulsado = false; });
 document.querySelectorAll("#msSeg button").forEach(b => b.onclick = () => { S.msForma = b.dataset.m; if (S.msForma === "poli" && !S.msPts.length) MSED = true; sync(); });
 $("msEdit").onclick = () => { MSED = !MSED; sync(); };
-$("msClear").onclick = () => { S.msPts = []; sync(); };
-$("msReset").onclick = () => { Object.assign(S, {msX: .5, msY: .5, msGiro: 0}); sync(); };
+$("msClear").onclick = () => { S.msPts = []; msTocar(); sync(); };
+$("msReset").onclick = () => { Object.assign(S, {msX: .5, msY: .5, msGiro: 0}); msTocar(); sync(); };
 $("msInv").onchange = e => { S.msInv = e.target.checked; sync(); }; $("msMp4").onchange = e => { S.msMp4 = e.target.checked; sync(); };
 cv.addEventListener("contextmenu", e => { if (MSED) e.preventDefault(); });
 // muestra: el video paraASCII-001 (muestras/ al lado de la página); si no está (el HTML abierto suelto), las fotos de siempre
