@@ -22,4 +22,4 @@ Publicado con https (GitHub Pages) o servido desde `localhost`, la portada ofrec
 3. En el DNS: un registro CNAME a `mariscal-mrscl.github.io` (subdominio) o los cuatro A `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` (dominio pelado).
 4. Cuando propague, activar Enforce HTTPS.
 
-Para probar en la compu sin publicar: `python3 -m http.server 8765` en esta carpeta y abrir `http://localhost:8765/`.
+Para usarlo desde la compu sin publicar: doble clic en **Abrir LANZA Lab.command** (Mac) o **Abrir LANZA Lab.bat** (Windows). Levanta un servidor local en `http://localhost:8777/` y abre la portada; desde ahí se instala. A mano: `python3 -m http.server 8777` en esta carpeta.
