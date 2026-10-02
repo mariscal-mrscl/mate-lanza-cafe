@@ -1,6 +1,25 @@
 # LANZA · labs
 
-Herramientas autocontenidas (un solo HTML cada una) para armar las piezas de LANZAPOST. Se abren con doble clic en Chrome o Edge.
+Herramientas para armar las piezas de LANZAPOST. Todo corre en el navegador: el material no se sube a ningún lado.
 
+- **index.html**: portada con los dos labs y el botón para instalarlos como app.
 - **LANZA_ASCII_LAB.html**: ASCII, palabra, dither y campo de lanzas sobre fotos y videos, con montaje por match cut, grilla BPM y exportación MP4.
-- **LANZA_TD_LAB.html**: estilos a la TouchDesigner en WebGL (feedback, desplazamiento, slit-scan, trama, nube de puntos, líneas Rutt-Etra, campo de agujas, esfera, malla 3D, partículas, caleidoscopio, reacción-difusión), hasta 3 capas mezcladas, panel ASCII, controles de luz y separación de figura y fondo (IA, luz o movimiento, con pincel de corrección), keyframes, grabación de gestos en vivo, desfase del reloj del efecto respecto del clip, controles de clip (velocidad, entrada y salida, repetir, ida y vuelta o congelar), duración por largo del clip × vueltas o en segundos, exportación repetida con el efecto corriendo de largo, señal limpia (pantalla completa o ventana aparte), cámara en vivo como fuente y máscara de salida (rectángulo, elipse o polígono editable, animable con keyframes) (lo que movés mientras corre queda escrito cuadro a cuadro). Mismo flujo: grilla BPM, música, encuadres, logo y cierre, exportación MP4 cuadro por cuadro a 24 fps.
+- **LANZA_TD_LAB.html**: estilos a la TouchDesigner en WebGL (feedback, desplazamiento, slit-scan, trama, nube de puntos, líneas Rutt-Etra, campo de agujas, esfera, malla 3D, partículas, caleidoscopio, reacción-difusión), hasta 3 capas mezcladas, panel ASCII, controles de luz, separación de figura y fondo (IA, luz o movimiento, con pincel de corrección), keyframes y grabación de gestos en vivo (lo que movés mientras corre queda escrito cuadro a cuadro), desfase del reloj del efecto respecto del clip, controles de clip (velocidad, entrada y salida, repetir, ida y vuelta o congelar), duración por largo del clip × vueltas o en segundos, exportación repetida con el efecto corriendo de largo, señal limpia (pantalla completa o ventana aparte), cámara en vivo como fuente y máscara de salida (rectángulo, elipse o polígono editable, animable con keyframes). Mismo flujo: grilla BPM, música, encuadres, logo y cierre, exportación MP4 cuadro por cuadro a 24 fps.
+
+## Usarlo como app
+
+Publicado con https (GitHub Pages) o servido desde `localhost`, la portada ofrece **Instalar LANZA Lab** (Chrome y Edge; en iPhone/iPad: Safari → Compartir → Agregar a inicio). Instalada, abre en su propia ventana y funciona sin internet.
+
+- `manifest.webmanifest` e `icons/`: nombre, íconos y accesos directos a cada lab.
+- `sw.js`: guarda la app en la compu. Las páginas se piden primero a la red (así llegan los cambios); librerías, tipografías, íconos y el video de muestra salen de lo guardado. Si cambiás algo que no sea una página, subí `VERSION` en `sw.js`.
+- `vendor/`: TensorFlow.js, mp4-muxer y las tipografías, para no depender de internet (ver `vendor/README.md`). Si faltan, los labs usan la versión de internet.
+- `muestras/paraASCII-001.mp4`: video de muestra del TD Lab.
+
+## Publicar con un dominio (GitHub Pages)
+
+1. Settings → Pages → Deploy from a branch → la rama publicada, carpeta `/ (root)`.
+2. Custom domain: el dominio o subdominio (crea el archivo `CNAME`).
+3. En el DNS: un registro CNAME a `mariscal-mrscl.github.io` (subdominio) o los cuatro A `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` (dominio pelado).
+4. Cuando propague, activar Enforce HTTPS.
+
+Para probar en la compu sin publicar: `python3 -m http.server 8765` en esta carpeta y abrir `http://localhost:8765/`.

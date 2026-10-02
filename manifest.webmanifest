@@ -1,0 +1,21 @@
+{
+  "name": "LANZA Lab",
+  "short_name": "LANZA Lab",
+  "description": "Laboratorios de video de LANZAPOST: estilos a la TouchDesigner, ASCII, capas, cámara en vivo y exportación MP4. Todo corre en tu compu.",
+  "lang": "es",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "TD Lab", "url": "LANZA_TD_LAB.html", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]},
+    {"name": "ASCII Lab", "url": "LANZA_ASCII_LAB.html", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
+  ]
+}

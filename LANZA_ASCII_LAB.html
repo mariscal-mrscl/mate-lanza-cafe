@@ -1,7 +1,14 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>LANZA ASCII Lab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Host+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@100..800&display=swap">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#050505">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>/* tipografías incluidas en el repo (vendor/fonts), así la app anda sin internet */
+@font-face{font-family:"Host Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url(vendor/fonts/host-grotesk-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Host Grotesk";font-style:normal;font-weight:500;font-display:swap;src:url(vendor/fonts/host-grotesk-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Host Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(vendor/fonts/host-grotesk-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:100 800;font-display:swap;src:url(vendor/fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2-variations"),url(vendor/fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2")}
+</style>
+<script>if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
 <style>
 /* Layout: monitor a la izquierda (el cuadro manda), mesa de control a la derecha; en teléfono se apilan */
 :root{
@@ -1160,8 +1167,10 @@ function sjHint(t){ $("sjHint").textContent = t || ({off: "Separá la figura del
   ia: "Persona (IA rápida): detecta personas cuadro a cuadro con un modelo que corre en tu navegador. Funciona mejor con cuerpo o cara visibles; a veces también toma objetos al frente.",
   luz: "Por luz: la figura es lo más claro del cuadro (Umbral decide desde dónde). Ideal para objetos iluminados sobre fondo oscuro, como las lanzas.",
   mov: "Por movimiento: la figura es lo que se mueve entre cuadros. Sirve para videos con cámara quieta."}[S.sjModo]) + (S.sjModo !== "off" ? " Cantidad se puede animar con keyframes." : ""); }
-const cargarTF = () => window.tf ? Promise.resolve() : new Promise((ok, ko) => { const sc = document.createElement("script");
-  sc.src = "https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.22.0/tf.min.js"; sc.onload = ok; sc.onerror = () => ko(new Error("no pude cargar TensorFlow.js (¿sin internet?)")); document.head.append(sc); });
+// librerías: primero la copia del repo (vendor/, anda sin internet); si no está (HTML suelto), la de internet
+const cargarScript = (urls, err) => new Promise((ok, ko) => { const prueba = i => { if (i >= urls.length) return ko(new Error(err)); const sc = document.createElement("script");
+  sc.src = urls[i]; sc.onload = ok; sc.onerror = () => { sc.remove(); prueba(i + 1); }; document.head.append(sc); }; prueba(0); });
+const cargarTF = () => window.tf ? Promise.resolve() : cargarScript(["vendor/tf.min.js", "https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.22.0/tf.min.js"], "no pude cargar TensorFlow.js (¿sin internet?)");
 async function analizarSujeto(){  // recorre todas las imágenes una vez por material y modo; muestra el avance
   const modo = S.sjModo; if (SJ.corriendo || SJ[modo] === fotosId) return; SJ.corriendo = true; const id = fotosId;
   const prog = n => { $("sjProg").hidden = false; $("sjBar").style.width = (100*n).toFixed(1) + "%"; };
@@ -1486,8 +1495,7 @@ function link(blob, name, label){
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.textContent = label; $("links").prepend(a); }
 // ─── exportación cuadro por cuadro: WebCodecs (H.264 High + AAC) → MP4 con mp4-muxer; cada cuadro se dibuja y se codifica sin apuro
 let cancelar = false;
-const cargarMuxer = () => window.Mp4Muxer ? Promise.resolve() : new Promise((ok, ko) => { const sc = document.createElement("script");
-  sc.src = "https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"; sc.onload = ok; sc.onerror = () => ko(new Error("no pude cargar el empaquetador MP4 (¿sin internet?)")); document.head.append(sc); });
+const cargarMuxer = () => window.Mp4Muxer ? Promise.resolve() : cargarScript(["vendor/mp4-muxer.js", "https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"], "no pude cargar el empaquetador MP4 (¿sin internet?)");
 async function elegirVideo(W, H, bps){
   for (const codec of ["avc1.640033", "avc1.640032", "avc1.640028", "avc1.4d0033"]){   // High 5.1 → 5.0 → 4.0 → Main
     const c = {codec, width: W, height: H, bitrate: bps, framerate: FPS, bitrateMode: "variable", latencyMode: "quality", avc: {format: "avc"}};
