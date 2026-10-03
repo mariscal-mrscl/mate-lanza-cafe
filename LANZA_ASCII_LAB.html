@@ -26,6 +26,7 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .bar .name{color:var(--fg);letter-spacing:.14em}
 .mon{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;position:relative}
 #cv{max-width:100%;max-height:100%;height:auto;width:auto;display:block;background:#000;outline:1px solid var(--line)}
+#cv:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;object-fit:contain;outline:0}
 .drop{position:absolute;inset:18px;border:1px dashed var(--soft);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);background:rgba(0,0,0,.72)}
 .transport{display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--line)}
 .transport input[type=range]{flex:1}
@@ -123,7 +124,7 @@ details.log[open] summary::before{content:"− "}
 
   <aside class="panel" aria-label="Controles">
     <nav class="tabs" id="tabs" aria-label="Secciones">
-      <button data-tab="material">Material</button><button data-tab="estilo">Estilo</button><button data-tab="sujeto">Sujeto</button><button data-tab="ritmo">Ritmo</button><button data-tab="animar">Animar</button><button data-tab="exportar">Exportar</button>
+      <button data-tab="material">Material</button><button data-tab="estilo">Estilo</button><button data-tab="sujeto">Sujeto</button><button data-tab="ritmo">Ritmo</button><button data-tab="animar">Animar</button><button data-tab="exportar">Salida</button>
     </nav>
     <div class="grp">
       <h2>Fuente</h2>
@@ -141,6 +142,13 @@ details.log[open] summary::before{content:"− "}
       </div>
       <div class="seg" id="movSeg"><button data-v="0">Fotos fijas</button><button data-v="1">Movimiento</button></div>
       <p class="hint" id="srcHint">Videos filmados: el ASCII y los efectos corren sobre el movimiento. Montajes de fotos (como los paraASCII): el lab detecta cada corte y guarda la foto con su duración; podés cargar varios a la vez para mezclarlos. Cada video se recorre una vez en tiempo real.</p>
+    </div>
+
+    <div class="grp">
+      <h2>Clip</h2>
+      <div class="row"><label for="vel">Velocidad</label><input type="range" id="vel" min="0.25" max="3" step="0.05"><output id="velO"></output></div>
+      <div class="seg" id="velSeg"><button data-v="0.25">¼</button><button data-v="0.5">½</button><button data-v="1">×1</button><button data-v="1.5">×1.5</button><button data-v="2">×2</button></div>
+      <p class="hint" id="clipHint">Velocidad del material, como en el TD Lab: lento estira cada toma (repite cuadros), rápido la acorta (saltea). El audio del video la sigue, cambiando el tono como una cinta.</p>
     </div>
 
     <div class="grp">
@@ -164,6 +172,10 @@ details.log[open] summary::before{content:"− "}
       <input type="file" id="pfile" accept=".json,application/json" hidden>
       <div class="seg mine" id="mine"></div>
       <p class="hint" id="mineHint"></p>
+      <h3>Proyecto</h3>
+      <div class="seg"><button id="projSave">Guardar proyecto</button><button id="projOpen">Abrir proyecto</button></div>
+      <input type="file" id="projFile" accept=".json,application/json" hidden>
+      <p class="hint" id="projHint">El proyecto guarda en un archivo todos los ajustes, los keyframes, la toma en vivo, los presets y las correcciones del pincel. El material no va adentro: volvé a cargarlo al abrir.</p>
       <p class="hint">Los mix arman el montaje por match cut de forma, 15 s más el logo. Las de 96 BPM cortan en semicorcheas para poder ponerle canciones a ese tempo.</p>
     </div>
 
@@ -334,11 +346,17 @@ details.log[open] summary::before{content:"− "}
       </div>
       <div class="row two"><label for="calidad">Calidad</label>
         <select id="calidad"><option value="80">Máxima · 80 Mb/s (para editar o archivar)</option><option value="40">Alta · 40 Mb/s</option><option value="16">Liviana · 16 Mb/s (para mandar)</option></select></div>
+      <h3>Varios formatos</h3>
+      <div class="seg" id="cola"><button data-f="916">9:16</button><button data-f="story">Storie</button><button data-f="feedc">4:5 cont.</button><button data-f="feed">4:5</button><button data-f="34">3:4</button><button data-f="11">1:1</button><button data-f="43">4:3</button><button data-f="169">16:9</button><button data-f="239">2.39:1</button></div>
+      <div class="seg"><button id="expCola">Exportar los marcados</button></div>
       <div class="prog" id="prog" hidden><i id="progBar"></i></div>
       <p class="hint" id="expHint">Arma el MP4 cuadro por cuadro, sin depender de la velocidad de la compu: los cuadros salen exactos a 24 fps, en la resolución completa del formato, con el audio pegado en AAC. Necesita Chrome o Edge recientes; Safari reciente también, a veces sin audio.</p>
       <div class="seg">
         <button id="rec">Grabar en tiempo real</button><button id="png">Guardar cuadro</button><button id="copy">Copiar ajustes</button>
       </div>
+      <h3>Señal limpia</h3>
+      <div class="seg"><button id="limpia">Pantalla completa</button></div>
+      <p class="hint">Solo la imagen, sin paneles, para un proyector o un segundo monitor (como en el TD Lab). Los atajos siguen andando; Esc vuelve.</p>
       <p class="hint" id="outHint">Grabar en tiempo real captura la reproducción tal como se ve (puede perder cuadros si la compu no llega). Copiar ajustes incluye la secuencia exacta de fotos, reencuadres y cuadros, para que Claude renderice la versión final.</p>
       <div class="links" id="links"></div>
       <textarea id="json" readonly aria-label="Ajustes"></textarea>
@@ -411,7 +429,7 @@ const PRESETS = {
   dither_96: MIX("flash_revela", {render:"dither", holdMode:"bpm", bpm:96, frase:"lanza", compases:6}),
   lanzas_96: MIX("flash_revela", {render:"lanzas", holdMode:"bpm", bpm:96, frase:"lanza", compases:6})
 };
-const S = Object.assign({fmt:"916", inv:false, marca:true, cierre:true, efecto:"ascii", fuerza:1, orden:"cargado", reenc:true, semilla:1, cuerpo:0,
+const S = Object.assign({vel:1, fmt:"916", inv:false, marca:true, cierre:true, efecto:"ascii", fuerza:1, orden:"cargado", reenc:true, semilla:1, cuerpo:0,
   bpm:96, frase:"lanza", compases:6, musica:"pulso", songOff:0, vol:.8, mov:true, kf:{}, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:0.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, vivo:[], vivoQ:"libre", gSens:0.5, gMin:4, gFx:false, gRe:false, tal:true, duo:true, duoInv:false, sep:0, fin:"ajustar", ajuste:"llenar", esc:1, px:0, py:0, render:"ascii", palabra:"LANZAPOST·"}, PRESETS.aprobado);
 try { const s = JSON.parse(localStorage.getItem("lanzaAsciiLab2")||"null"); if (s) Object.assign(S, s); } catch(e) {}
 const save = () => { try { localStorage.setItem("lanzaAsciiLab2", JSON.stringify(S)); } catch(e) {} };
@@ -843,10 +861,12 @@ async function pulso(){  // música minimal: click por corte, pulso, campana, dr
 function fadeOut(buf, sec){ const n = Math.min(buf.length, Math.round(sec*buf.sampleRate)); for (let c=0;c<buf.numberOfChannels;c++){ const d = buf.getChannelData(c); for (let i=0;i<n;i++) d[buf.length-1-i] *= Math.pow(i/n, 2); } }
 function normalize(buf, peak){ let m = 1e-6; for (let c=0;c<buf.numberOfChannels;c++){ const d = buf.getChannelData(c); for (let i=0;i<d.length;i++) m = Math.max(m, Math.abs(d[i])); }
   const g = peak/m; for (let c=0;c<buf.numberOfChannels;c++){ const d = buf.getChannelData(c); for (let i=0;i<d.length;i++) d[i] *= g; } }
-function tramo(SRC = SONG, off = S.songOff){  // el tramo de canción (o el audio del video) que dura la pieza, desde el arranque, con fundidos
+function tramo(SRC = SONG, off = S.songOff, vel = 1){  // el tramo de canción (o el audio del video, a la velocidad del clip) que dura la pieza, desde el arranque, con fundidos
   const SONG = SRC, n = Math.ceil(TL.total/FPS*SONG.sampleRate), out = new AudioBuffer({length:n, numberOfChannels:2, sampleRate:SONG.sampleRate}), o = Math.round(off*SONG.sampleRate);
   for (let c=0;c<2;c++){ const src = SONG.getChannelData(Math.min(c, SONG.numberOfChannels-1)), d = out.getChannelData(c);
-    for (let i=0;i<n;i++){ const k = o + i; d[i] = k < src.length ? src[k] : 0; } for (let i=0;i<240;i++) d[i] *= i/240; }
+    if (vel === 1){ for (let i=0;i<n;i++){ const k = o + i; d[i] = k < src.length ? src[k] : 0; } }
+    else for (let i=0;i<n;i++){ const x = o + i*vel, k = Math.floor(x), fr = x - k; d[i] = k + 1 < src.length ? src[k]*(1 - fr) + src[k + 1]*fr : 0; }
+    for (let i=0;i<240;i++) d[i] *= i/240; }
   fadeOut(out, .6); return out; }
 async function bandas(buf){  // energía por cuadro en graves / medios / agudos (filtros en un contexto fuera de línea)
   const band = async (type, fq, q) => { const oc = new OfflineAudioContext(1, buf.length, buf.sampleRate), s = oc.createBufferSource(); s.buffer = buf; let node = s;
@@ -861,12 +881,12 @@ async function bandas(buf){  // energía por cuadro en graves / medios / agudos 
   return out;
 }
 async function rearmarAudio(){
-  const key = [S.musica, fotosId, duo(), S.musica === "pulso" ? TL.T.map(s => s.f0).join(",") : "", TL.total, TL.land, S.cierre, S.bpm, S.holdMode, S.songOff, songName].join("|");
+  const key = [S.musica, fotosId, S.vel, duo(), S.musica === "pulso" ? TL.T.map(s => s.f0).join(",") : "", TL.total, TL.land, S.cierre, S.bpm, S.holdMode, S.songOff, songName].join("|");
   if (key === audioKey) return; audioKey = key; const mine = Symbol(); audioBusy = mine;
   await new Promise(r => setTimeout(r, 250)); if (audioBusy !== mine) return;
   try {
     const usarCancion = S.musica === "cancion" && SONG, usarVideo = S.musica === "video" && VAUD;
-    const buf = usarVideo ? tramo(duo() && DAUD ? DAUD : VAUD, 0) : usarCancion ? tramo() : (TL.T.length ? await pulso() : null);
+    const buf = usarVideo ? tramo(duo() && DAUD ? DAUD : VAUD, 0, +S.vel || 1) : usarCancion ? tramo() : (TL.T.length ? await pulso() : null);
     if (audioBusy !== mine) return; if (!buf){ audioListo = key; return; }
     const feat = await bandas(buf); if (audioBusy !== mine) return;
     if (usarCancion || usarVideo){ const gk = [S.musica, songName, S.songOff, fotosId, duo(), TL.total].join("|");
@@ -926,6 +946,8 @@ document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && 
 const num = ["fs","peso","gam","hold","cada","t","scr","fuerza","semilla","cuerpo","compases","vol","esc","px","py","sep","sj","sjU","sjB","gSens","gMin","pinR"];
 const fmtOut = (k, v) => k==="scr" ? Math.round(v*100)+"%" : k==="gam"||k==="fuerza" ? (+v).toFixed(2) : k==="cuerpo" ? (v ? v+" s" : "todo") : k==="vol" ? Math.round(v*100)+"%" : k==="esc" ? Math.round(v*100)+"%" : k==="px"||k==="py" ? (v > 0 ? "+" : "") + Math.round(v*100) : k==="sep"||k==="sjB"||k==="pinR" ? v + " px" : k==="sj"||k==="sjU"||k==="gSens" ? Math.round(v*100) + "%" : k==="gMin" ? v + " c" : v;
 function sync(){
+  document.querySelectorAll("#cola button").forEach(b => b.setAttribute("aria-pressed", (S.cola || []).includes(b.dataset.f)));
+  $("vel").value = S.vel || 1; $("velO").textContent = "×" + (S.vel || 1); document.querySelectorAll("#velSeg button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.v === +S.vel));
   num.forEach(k => { const v = valEn(k, curF()); $(k).value = v; $(k+"O").textContent = fmtOut(k, v); });
   const opt = [...$("rampSel").options].find(o => o.value === S.ramp); $("rampSel").value = opt ? S.ramp : "custom"; $("rampRow").hidden = !!opt; $("ramp").value = S.ramp;
   $("holdMode").value = S.holdMode; $("holdRow").hidden = S.holdMode !== "fijo"; $("cadaRow").hidden = S.orden !== "cargado" || S.holdMode === "bpm" || tal();
@@ -981,6 +1003,9 @@ num.forEach(k => $(k).addEventListener("input", e => { const v = ["gam","scr","f
 $("bpm").onchange = e => { const v = parseFloat(e.target.value); if (v >= 50 && v <= 220){ S.bpm = Math.round(v*10)/10; } sync(); };
 $("frase").onchange = e => { S.frase = e.target.value; sync(); };
 $("fin").onchange = e => { S.fin = e.target.value; sync(); };
+let velT = 0; const ponerVel = v => { S.vel = Math.round(v*100)/100; $("velO").textContent = "×" + S.vel; clearTimeout(velT); velT = setTimeout(() => { aplicarVel(); sync(); }, 120); };
+$("vel").oninput = e => ponerVel(+e.target.value);
+document.querySelectorAll("#velSeg button").forEach(b => b.onclick = () => ponerVel(+b.dataset.v));
 $("rampSel").onchange = e => { if (e.target.value === "custom"){ $("rampRow").hidden = false; $("ramp").focus(); } else { S.ramp = e.target.value; sync(); } };
 $("ramp").oninput = e => { S.ramp = e.target.value; save(); $("json").value = JSON.stringify(ajustes(), null, 1); };
 $("holdMode").onchange = e => { S.holdMode = e.target.value; sync(); };
@@ -1290,18 +1315,19 @@ $("gUsar").onclick = () => { S.holdMode = S.holdMode === "golpes" ? (tal() ? "or
 $("gDet").onclick = () => { GOLPES = {key: "", auto: [], quit: new Set(), add: []}; audioKey = ""; sync(); };
 
 // ─── pestañas: el panel se ordena por tarea (material → estilo → sujeto → ritmo → animar → exportar)
-const TAB_DE = {Fuente: "material", Encuadre: "material", Estilos: "estilo", Render: "estilo", Efecto: "estilo", "Carácter": "estilo", Empalme: "estilo", Sujeto: "sujeto",
+const TAB_DE = {Fuente: "material", Clip: "material", Encuadre: "material", Estilos: "estilo", Render: "estilo", Efecto: "estilo", "Carácter": "estilo", Empalme: "estilo", Sujeto: "sujeto",
   "Música": "ritmo", Golpes: "ritmo", Tiempo: "ritmo", Montaje: "ritmo", "En vivo": "animar", Keyframes: "animar", Salida: "exportar"};
 { const panel = document.querySelector(".panel"), gs = [...panel.querySelectorAll(":scope > .grp")], nom = g => { const h = g.querySelector(":scope > h2"); return h ? h.textContent.trim() : ""; };
   Object.keys(TAB_DE).forEach(n => { const g = gs.find(x => nom(x) === n); if (g){ g.dataset.tab = TAB_DE[n]; panel.append(g); } });
   gs.filter(g => !g.dataset.tab).forEach(g => { g.dataset.tab = "exportar"; panel.append(g); }); }
+{ const clip = $("clipHint"); clip.before($("finRow"), $("cuerpoRow")); $("finRow").querySelector("label").textContent = "Cuando termina"; }   // como en el TD Lab: todo lo del clip junto
 let TAB = "material"; try { TAB = localStorage.getItem("lanzaLabTab") || TAB; } catch(e) {}
 { const h = location.hash.slice(1); if (document.querySelector(`#tabs [data-tab="${h}"]`)) TAB = h; }
 function verTab(t){ TAB = t; try { localStorage.setItem("lanzaLabTab", t); } catch(e) {}
   document.querySelectorAll(".panel > .grp").forEach(g => g.hidden = g.dataset.tab !== t);
   document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t)); document.querySelector(".panel").scrollTop = 0; }
 function pestanias(){ const nk = ANIM.reduce((a, k) => a + (animado(k) ? S.kf[k].length : 0), 0), ng = S.holdMode === "golpes" ? golpesEf().filter(g => g.f < TL.body).length : 0;
-  const lab = {material: "Material", estilo: "Estilo", sujeto: "Sujeto" + (S.sjModo !== "off" ? "<b>●</b>" : ""), ritmo: "Ritmo" + (ng ? `<b>${ng}</b>` : ""), animar: "Animar" + (nk ? `<b>${nk}</b>` : ""), exportar: "Exportar"};
+  const lab = {material: "Material", estilo: "Estilo", sujeto: "Sujeto" + (S.sjModo !== "off" ? "<b>●</b>" : ""), ritmo: "Ritmo" + (ng ? `<b>${ng}</b>` : ""), animar: "Animar" + (nk ? `<b>${nk}</b>` : ""), exportar: "Salida"};
   document.querySelectorAll("#tabs button").forEach(b => { if (b.innerHTML !== lab[b.dataset.tab]) b.innerHTML = lab[b.dataset.tab]; }); }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => verTab(b.dataset.tab));
 verTab(TAB);
@@ -1407,7 +1433,14 @@ $("pfile").onchange = async e => { const file = e.target.files[0]; e.target.valu
 
 // ─── fuentes
 function nuevasFotos(f, l, s, r, names, label, mv, vid, vaud, vt){ try { PIN.capas = []; PIN.ult = []; } catch(e) {} VID = vid || []; VAUD = vaud || null; VTOMAS = vt || 0; if (!VAUD && S.musica === "video") S.musica = "pulso"; fotos = f; lens = l; srcOf = s; refOf = r; srcNames = names; movs = mv || []; fotosId++; cache.clear(); DESC = null; CHAIN = null; armando = null; baseKey = "";
+  ORIG = {vid: VID, mv: movs, l: lens, duo: DUO}; aplicarVel(false);
   $("srcName").textContent = label; fi = 0; stopAudio(); sync(); }
+// velocidad del clip: los cuadros de cada toma se re-muestrean (lento repite, rápido saltea); todo lo demás (montaje, tal cual, dos videos) sigue igual
+let ORIG = null;
+function aplicarVel(rehacer = true){ if (!ORIG) return; const v = Math.max(.25, Math.min(3, +S.vel || 1));
+  const rs = a => { if (v === 1 || !a || a.length < 2) return a; const n = Math.max(1, Math.round(a.length/v)), o = new Array(n); for (let i=0; i<n; i++) o[i] = a[Math.min(a.length - 1, Math.floor(i*v))]; return o; };
+  VID = rs(ORIG.vid); movs = ORIG.mv.map(m => m ? rs(m) : m); lens = ORIG.l.map((n, i) => movs[i] ? movs[i].length : v === 1 ? n : Math.max(1, Math.round(n/v))); DUO = ORIG.duo.map(rs);
+  if (rehacer){ fotosId++; cache.clear(); CHAIN = null; armando = null; baseKey = ""; stopAudio(); } }
 async function cargarMuestra(){
   const f = await Promise.all(MUESTRAS.map(u => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = u; })));
   DUO = []; DAUD = null; CARGA = []; nuevasFotos(f, f.map(() => 4), f.map(() => 0), f.map((_, k) => "muestra#" + k), ["muestra"], `muestra · ${f.length} fotos`);
@@ -1550,7 +1583,25 @@ async function exportar(){
   finally { exportando = false; fi = fiAntes; playing = playAntes; lastFx = -9; baseKey = ""; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); }
 }
 $("exp").onclick = exportar;
-$("cancelExp").onclick = () => { cancelar = true; };
+$("limpia").onclick = () => { cv.requestFullscreen ? cv.requestFullscreen().catch(() => {}) : cv.webkitRequestFullscreen && cv.webkitRequestFullscreen(); };
+let colaCorte = false;
+$("cancelExp").onclick = () => { cancelar = true; colaCorte = true; };
+document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const c = S.cola = S.cola || [], j = c.indexOf(b.dataset.f); if (j >= 0) c.splice(j, 1); else c.push(b.dataset.f); sync(); });
+$("expCola").onclick = async () => { const lista = [...document.querySelectorAll("#cola button")].map(b => b.dataset.f).filter(f => (S.cola || []).includes(f)); if (!lista.length || exportando) return;   // uno tras otro, como en el TD Lab
+  const antes = S.fmt; colaCorte = false; $("expCola").disabled = true;
+  try { for (const [q, f] of lista.entries()){ if (colaCorte) break; S.fmt = f; _lc = null; baseKey = ""; sync(); $("expCola").textContent = `Exportando ${q + 1} de ${lista.length}…`; await exportar(); } }
+  finally { S.fmt = antes; _lc = null; baseKey = ""; sync(); $("expCola").disabled = false; $("expCola").textContent = "Exportar los marcados"; } };
+// proyecto: los ajustes, presets y el pincel en un archivo (el mismo formato de trabajo que el TD Lab)
+const pinPlano = () => PIN.capas.map(c => ({f0: c.f0, f1: c.f1, trazos: c.trazos.map(t => ({tipo: t.tipo, r: t.r, pts: t.pts, fa: t.fa, trk: t.trk ? {f0: t.trk.f0, dx: Array.from(t.trk.dx), dy: Array.from(t.trk.dy)} : null}))}));
+const pinDesdePlano = L => L.map(c => { const capa = {f0: c.f0, f1: c.f1, trazos: []}; capa.trazos = c.trazos.map(t => ({...t, capa})); return capa; });
+$("projSave").onclick = () => { const d = {lab: "LANZA ASCII Lab", version: 1, ajustes: S, presets: MIOS, pincel: pinPlano(), material: $("srcName").textContent};
+  link(new Blob([JSON.stringify(d)], {type: "application/json"}), `lanza_ascii_proyecto_${new Date().toISOString().slice(0, 10)}.json`, "Descargar proyecto"); $("projHint").textContent = "Archivo listo abajo, en Salida."; };
+$("projOpen").onclick = () => $("projFile").click();
+$("projFile").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { const d = JSON.parse(await f.text()); if (!d.ajustes) throw 0; Object.assign(S, d.ajustes); Object.assign(MIOS, d.presets || {}); guardarMios(); renderMios();
+    if (d.pincel) PIN.capas = pinDesdePlano(d.pincel); PIN.ult = []; aplicarVel(); _lc = null; baseKey = ""; audioKey = ""; sync();
+    $("projHint").textContent = `Proyecto abierto${d.material ? ` (material original: ${d.material}; cargalo de nuevo si no es el mismo)` : ""}.`; }
+  catch(err){ $("projHint").textContent = "No pude abrir ese archivo de proyecto."; } };
 
 $("png").onclick = () => cv.toBlob(b => link(b, `lanza_ascii_${String(fi).padStart(4,"0")}.png`, `Descargar cuadro ${fi}`), "image/png");
 $("rec").onclick = () => {
