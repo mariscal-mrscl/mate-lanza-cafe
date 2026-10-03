@@ -15,7 +15,7 @@
     {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "shortcuts": [
-    {"name": "SIGNAL Lab", "url": "LANZA_TD_LAB.html", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]},
+    {"name": "SIGNAL Lab", "url": "LANZA_SIGNAL_LAB.html", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]},
     {"name": "ASCII Lab", "url": "LANZA_ASCII_LAB.html", "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]}
   ]
 }

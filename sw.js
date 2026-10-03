@@ -2,9 +2,9 @@
 // Las páginas se piden primero a la red (así llegan las actualizaciones) y, si no hay conexión, salen de lo guardado.
 // Librerías, tipografías, íconos y el video de muestra salen de lo guardado (no cambian).
 // Al publicar archivos nuevos que no son páginas, subí VERSION para que se vuelvan a bajar.
-const VERSION = "lanza-lab-v2";
+const VERSION = "lanza-lab-v3";
 const PRECARGA = [
-  "./", "index.html", "LANZA_TD_LAB.html", "LANZA_ASCII_LAB.html", "manifest.webmanifest",
+  "./", "index.html", "LANZA_SIGNAL_LAB.html", "LANZA_ASCII_LAB.html", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/maskable-512.png", "icons/apple-touch-icon.png", "icons/favicon-32.png",
   "vendor/tf.min.js", "vendor/mp4-muxer.js",
   "vendor/fonts/host-grotesk-latin-400-normal.woff2", "vendor/fonts/host-grotesk-latin-500-normal.woff2",
