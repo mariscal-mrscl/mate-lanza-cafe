@@ -172,11 +172,11 @@ details.log[open] summary::before{content:"− "}
       <div class="seg" id="presets">
         <button data-p="aprobado">Aprobado</button><button data-p="bloque">Bloque</button><button data-p="fino">Fino</button><button data-p="eco">Eco</button>
       </div>
-      <h3>Mix ASCII × foto (aprobados 30/09)</h3>
+      <h3>Mix ASCII × foto</h3>
       <div class="seg" id="presets2">
         <button data-p="flash_capas">Flash capas</button><button data-p="flash_revela">Flash revela</button><button data-p="estela_ascii">Estela ASCII</button><button data-p="estela_capas">Estela capas</button><button data-p="revela96">Revela 96 BPM</button>
       </div>
-      <h3>Ramas (30/09)</h3>
+      <h3>Ramas</h3>
       <div class="seg" id="presets3">
         <button data-p="palabra_mix">Palabra mix</button><button data-p="palabra_96">Palabra 96</button><button data-p="dither_mix">Dither mix</button><button data-p="dither_96">Dither 96</button><button data-p="lanzas_mix">Lanzas mix</button><button data-p="lanzas_96">Lanzas 96</button>
       </div>
@@ -377,43 +377,11 @@ details.log[open] summary::before{content:"− "}
       <h3>Señal limpia</h3>
       <div class="seg"><button id="limpia">Pantalla completa</button></div>
       <p class="hint">Solo la imagen, sin paneles, para un proyector o un segundo monitor (como en el SIGNAL Lab). Los atajos siguen andando; Esc vuelve.</p>
-      <p class="hint" id="outHint">Grabar en tiempo real captura la reproducción tal como se ve (puede perder cuadros si la compu no llega). Copiar ajustes incluye la secuencia exacta de fotos, reencuadres y cuadros, para que Claude renderice la versión final.</p>
+      <p class="hint" id="outHint">Grabar en tiempo real captura la reproducción tal como se ve (puede perder cuadros si la compu no llega). Copiar ajustes copia al portapapeles todos los ajustes, con la secuencia exacta de fotos, reencuadres y cuadros.</p>
       <div class="links" id="links"></div>
       <textarea id="json" readonly aria-label="Ajustes"></textarea>
     </div>
 
-    <div class="grp">
-      <details class="log">
-        <summary>Bitácora de piezas</summary>
-        <h4>Reglas de la serie</h4>
-        <ul>
-          <li>Blanco y negro, logo arriba y LANZAPOST.COM al pie; cierre de 3 s donde el logo ASCII aterriza en el logo real.</li>
-          <li>Material propio de 00_LANZAS: sin rostros (ojos sí) y sin texto. En los paraASCII armados por Martín los rostros están permitidos.</li>
-          <li>24 fps. Formatos: 9:16 completo (Reels), storie 80 % con grilla de márgenes (sin rótulo) y 4:5 contenido (el 9:16 entero dentro de la grilla, sin recorte).</li>
-          <li>Música aprobada: minimal (click por corte, pulso cada 4, campana cada 16, drone, silencio e impacto en el logo, −14 LUFS).</li>
-        </ul>
-        <h4>Entregadas · _PARA_SUBIR/</h4>
-        <ul>
-          <li><code>REELS_paraASCII_000</code>: 8 s + logo, música suave (piano).</li>
-          <li><code>REELS/STORIE80/FEED_paraASCII_{000c,001,002}</code>: ASCII sobre los montajes completos con cierre.</li>
-          <li><code>REELS_{flash,estela}_{000c,001,002}</code>: foto audioreactiva sobre cada montaje.</li>
-          <li><code>REELS_mix_{flash_capas,flash_revela,estela_ascii,estela_capas}</code>: 15 s + logo (18 s); mezcla de las tres bases por match cut de forma, reencuadre fijo solo cuando ayuda.</li>
-          <li><code>REELS_mix_flash_revela_96bpm</code> (+ <code>_SIN_AUDIO</code>): cortes en grilla de 96 BPM.</li>
-        </ul>
-        <h4>La grilla de 96 BPM</h4>
-        <p>A 24 fps una negra dura 15 cuadros exactos y un compás 60 (2,5 s): 15 s son 6 compases justos. La semicorchea son 3,75 cuadros, así que cada corte se redondea a medio cuadro como mucho (21 ms). Frase: compás 1 entra con negras y corcheas, 2 y 4 mezclan corcheas y semicorcheas, 3 y 5 van en semicorcheas, 6 remata con un corte largo en el último tiempo. El logo aterriza en el tiempo 26 (16,25 s).</p>
-        <p>Encaja con temas a 96 BPM, a 192 (un corte por corchea) o a 48 en medio tiempo. El primer cuadro del video tiene que coincidir con el uno de un compás.</p>
-        <h4>Pendiente</h4>
-        <ul>
-          <li>Storie 80 % y 4:5 contenido de los mix: en espera hasta que Martín lo pida.</li>
-          <li>Textos de caption 04–20.</li>
-        </ul>
-        <h4>Scripts</h4>
-        <ul>
-          <li><code>_src/ascii_ref.py</code> ASCII sobre los montajes · <code>foto_montaje.py</code> flash/estela · <code>mezcla_audio.py</code> muestras de mix · <code>mix_montaje.py</code> los mix por match cut y la grilla BPM.</li>
-        </ul>
-      </details>
-    </div>
   </aside>
 </div>
 
