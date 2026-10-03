@@ -177,6 +177,9 @@ details.log[open] summary::before{content:"− "}
         <select id="capaZona"><option value="todo">Toda la imagen</option><option value="figura">Solo la figura</option><option value="fondo">Solo el fondo</option></select></div>
       <div id="capaBox" class="grp" style="padding:0;border:0">
         <label class="chk"><input type="checkbox" id="capaOn"> Capa activa</label>
+        <div class="seg"><button id="capaSolo" aria-pressed="false" title="Ver solo esta capa sin apagar las otras (siguen corriendo, no se reinician)">Ver sola</button><button id="capaArriba" title="Pasar esta capa más arriba en la pila">Subir ↑</button><button id="capaAbajo" title="Pasar esta capa más abajo en la pila">Bajar ↓</button></div>
+        <div class="row two" id="capaInRow"><label for="capaIn" title="Qué procesa esta capa">Procesa</label>
+          <select id="capaIn"><option value="src">La imagen original (en paralelo)</option><option value="abajo">Lo de abajo (en cadena)</option></select></div>
         <div class="row two" id="capaModoRow"><label for="capaModo">Mezcla</label>
           <select id="capaModo"><option value="suma">Sumar (brilla donde se cruzan)</option><option value="pantalla">Pantalla (suma sin quemar)</option><option value="aclarar">Aclarar (lo más claro de las dos)</option><option value="multiplicar">Multiplicar (recorta con la de abajo)</option><option value="diferencia">Diferencia (invierte donde se cruzan)</option><option value="mezcla">Fundido (opacidad común)</option></select></div>
         <div class="row op"><label for="capaOp">Opacidad</label><input type="range" id="capaOp" min="0" max="1" step="0.01"><output id="capaOpO"></output><button class="rombo" id="kfOp" title="Keyframe de opacidad en este cuadro">◇</button></div>
@@ -294,6 +297,12 @@ details.log[open] summary::before{content:"− "}
       <h2>Música</h2>
       <div class="seg" id="musica">
         <button data-m="video">Audio del video</button><button data-m="pulso">Pulso interno</button><button data-m="cancion">Canción</button><button data-m="nada">Sin música</button>
+      </div>
+      <div class="seg"><button id="micBtn" aria-pressed="false" title="El efecto reacciona a lo que escucha el micrófono">Micrófono en vivo</button></div>
+      <div id="micBox" hidden style="display:grid;gap:8px">
+        <div class="row"><label for="micSens">Sensibilidad</label><input type="range" id="micSens" min="0.3" max="3" step="0.05"><output id="micSensO"></output></div>
+        <canvas id="micNivel" height="20" style="width:100%;height:20px;display:block;border:1px solid var(--line);border-radius:4px;background:#000" aria-label="Nivel del micrófono: grave y agudo"></canvas>
+        <p class="hint" id="micHint">El efecto sigue al micrófono (grave arriba, agudo abajo) en vez de la música: el pulso, «Al golpe» y la modulación Grave/Agudo de cada parámetro. Funciona en la vista previa, la pantalla completa y la señal limpia; el MP4 usa la música elegida. Para que reaccione más, subí Pulso.</p>
       </div>
       <p class="hint" id="musHint">Pulso interno: la música minimal de la serie (click en cada corte, pulso, campana, drone e impacto en el logo).</p>
       <div id="songBox" class="grp" style="padding:0;border:0">
@@ -459,7 +468,7 @@ const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", 
   musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], hudTexto:"LANZA", songLen:20, efecto:1, kfEf:[], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], msKfs:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
-delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.op == null) c.op = 1; if (c.vel == null) c.vel = 1; }); if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
+delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.op == null) c.op = 1; if (c.vel == null) c.vel = 1; if (!c.in) c.in = "src"; }); S.solo = -1; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
 if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
 const completar = (a, def) => { while (a.length < def.length) a.push(def[a.length]); return a; };   // los proyectos viejos traen 3 valores por estilo
@@ -927,7 +936,29 @@ async function calentar(f, exacto = false){   // vacía la memoria y, si arranca
   try { for (let k=N; k>=1; k--){ const g = ((f - k) % TL.body + TL.body) % TL.body; if (exacto) await prepExacto(g); render(g, true, relojEf(f, exacto) - k);
       if (exacto || k % 4 === 1){ gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PX1); await tick(); } } }
   finally { lastF = f - 1; CAL = false; } }
-function feat(f){ if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
+// micrófono en vivo: dos bandas (grave hasta 150 Hz, agudo desde 3 kHz) con su nivel adaptado a lo que viene sonando
+const MIC = {on: false, st: null, ctx: null, an: [], buf: null, pk: [.01, .005], e: [0, 0], t: 0, v: Z};
+async function micAbrir(){
+  try { const st = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(), src = ctx.createMediaStreamSource(st);
+    MIC.an = [["lowpass", 150], ["highpass", 3000]].map(([type, fq]) => { let n = src; for (let k=0; k<2; k++){ const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = fq; n.connect(b); n = b; }
+      const a = ctx.createAnalyser(); a.fftSize = 1024; n.connect(a); return a; });   // no va a los parlantes: no se acopla
+    Object.assign(MIC, {on: true, st, ctx, buf: new Float32Array(1024), pk: [.01, .005], e: [0, 0]}); $("micHint").className = "hint"; }
+  catch(e){ MIC.on = false; $("micHint").textContent = "No pude abrir el micrófono (" + (e.message || e.name || e) + "). Dale permiso al navegador para este sitio; tiene que estar en https o en localhost."; $("micHint").className = "hint warn"; }
+  micUI(); }
+function micCerrar(){ try { MIC.st.getTracks().forEach(t => t.stop()); MIC.ctx.close(); } catch(e) {} Object.assign(MIC, {on: false, st: null, ctx: null, an: []}); micUI(); }
+function micUI(){ $("micBtn").setAttribute("aria-pressed", MIC.on); $("micBox").hidden = !MIC.on; $("micSens").value = S.micSens ?? 1; $("micSensO").textContent = (+(S.micSens ?? 1)).toFixed(2) + "×"; }
+function micFeat(){
+  const now = performance.now(); if (now - MIC.t < 12) return MIC.v; MIC.t = now; const v = [0, 0];
+  MIC.an.forEach((a, i) => { a.getFloatTimeDomainData(MIC.buf); let s = 0; for (let j=0; j<MIC.buf.length; j++) s += MIC.buf[j]*MIC.buf[j];
+    const rms = Math.sqrt(s/MIC.buf.length); MIC.pk[i] = Math.max(rms, MIC.pk[i]*.997, .002);
+    v[i] = Math.min(1, Math.sqrt(rms/MIC.pk[i])*.85*(S.micSens ?? 1)); MIC.e[i] = Math.max(v[i], MIC.e[i]*(i ? .6 : .8)); });
+  MIC.v = {low: v[0], high: v[1], low_e: MIC.e[0], high_e: MIC.e[1]};
+  const c = $("micNivel"); if (!c.offsetParent) return MIC.v; const w = c.clientWidth; if (c.width !== w) c.width = w; const x = c.getContext("2d");
+  x.fillStyle = "#000"; x.fillRect(0, 0, w, 20); x.fillStyle = "#fff"; x.fillRect(0, 2, w*MIC.e[0], 7); x.fillStyle = "#c8ff3c"; x.fillRect(0, 11, w*MIC.e[1], 7);
+  return MIC.v; }
+function feat(f){ if (MIC.on && !exportando) return micFeat();
+  if (FEAT.length) return FEAT[Math.min(f, FEAT.length - 1)] || Z;
   const e = Math.exp(-(f % beatF())/3); return {low_e: e, high_e: e*.5}; }
 function claveFuente(f){   // qué hay en la fuente: si no cambió, no se vuelve a dibujar ni a subir
   const base = [fuenteId, S.fmt, S.ajuste, S.esc, S.px, S.py, R && R.W].join("|");
@@ -1109,14 +1140,18 @@ function render(f, pre = false, fe = relojEf(f, pre)){
   else {
   // capa 1 es la base; las otras se mezclan encima con su modo y opacidad (y, si se eligió, solo en la figura o en el fondo)
   // capa 1 se funde sobre la imagen limpia con su opacidad (o no está, si se apagó); las otras se mezclan encima con su modo
-  let acc = {t: r.src}, m = 0; const c0 = S.capas[0];
-  if (c0.on){ const out = capaRender(0, estiloDe(0, seg, f), f, base, ft, seg, inC), op0 = opDe(c0, f)*(c0.golpe ? Math.min(1, ft.low_e*1.2) : 1);
-    if (op0 >= .999 && !ZC(c0)) acc = out;
-    else { const dst = r.mx[m]; m = 1 - m; bindT(dst); use(P.mezcla, {uOp0: op0, uModo: 5, uZonaC: ZC(c0)}, {uA: r.src, uB: out.t, uMask: mkT}); quad(); acc = dst; } }
-  else if (r.L[0]){ soltarCapa(r.L[0]); r.L[0] = null; }
-  for (let k=1; k<3; k++){ const c = S.capas[k]; if (!c.on){ if (r.L[k]){ soltarCapa(r.L[k]); r.L[k] = null; } continue; }
-    const out = capaRender(k, estiloDe(k, seg, f), f, base, ft, seg, inC), op = opDe(c, f)*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1), dst = r.mx[m]; m = 1 - m;
-    bindT(dst); use(P.mezcla, {uOp0: op, uModo: MODOS[c.modo] || 0, uZonaC: ZC(c)}, {uA: acc.t, uB: out.t, uMask: mkT}); quad(); acc = dst; }
+  // una capa apagada no se borra: guarda su memoria y sigue donde estaba al volver a activarla
+  // "en cadena": la capa procesa lo que viene de abajo en vez de la imagen original. "Ver sola": se ve esa capa, las otras siguen corriendo
+  let acc = {t: r.src}, m = 0, sola = null; const c0 = S.capas[0], fuente0 = r.src;
+  for (let k=0; k<3; k++){ const c = S.capas[k]; if (!c.on) continue;
+    if (c.in === "abajo" && k > 0) r.src = acc.t;
+    let out; try { out = capaRender(k, estiloDe(k, seg, f), f, base, ft, seg, inC); } finally { r.src = fuente0; }
+    if (S.solo === k) sola = out;
+    const op = opDe(c, f)*(c.golpe ? Math.min(1, ft.low_e*1.2) : 1);
+    if (k === 0 && op >= .999 && !ZC(c)){ acc = out; continue; }
+    const dst = r.mx[m]; m = 1 - m; bindT(dst);
+    use(P.mezcla, {uOp0: op, uModo: k === 0 ? 5 : MODOS[c.modo] || 0, uZonaC: ZC(c)}, {uA: acc.t, uB: out.t, uMask: mkT}); quad(); acc = dst; }
+  if (sola && !exportando) acc = sola;
   const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
   bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: acc.t, uPrev: tp.t}); quad();
   img = td;
@@ -1543,11 +1578,12 @@ function sync(){
   S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.seq) c.seq = c.seq.filter(x => STYLES[x]); if (c.cambios) c.cambios = c.cambios.filter(x => STYLES[x[1]]); });   // estilos que ya no existen (caleidoscopio, reacción-difusión)
   num.forEach(k => { $(k).value = S[k]; $(k + "O").textContent = fmtOut(k, S[k]); });
   document.querySelectorAll("#capasSeg button").forEach(b => { const k = +b.dataset.k, c = S.capas[k];
-    b.innerHTML = `Capa ${k + 1}<small>${c.on ? STYLES[c.estilo].n : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
-  $("capaModoRow").hidden = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaVel").value = cap().vel ?? 1; $("capaVelO").textContent = String(+(+(cap().vel ?? 1)).toFixed(2)) + "×"; $("capaGolpe").checked = !!cap().golpe;
+    b.innerHTML = `Capa ${k + 1}${S.solo === k ? " · sola" : ""}<small>${c.on ? STYLES[c.estilo].n + (k && c.in === "abajo" ? " ↥" : "") : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
+  $("capaModoRow").hidden = S.sel === 0; $("capaInRow").hidden = S.sel === 0; $("capaIn").value = cap().in || "src";
+  $("capaSolo").setAttribute("aria-pressed", S.solo === S.sel); $("capaArriba").disabled = S.sel === 2; $("capaAbajo").disabled = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaVel").value = cap().vel ?? 1; $("capaVelO").textContent = String(+(+(cap().vel ?? 1)).toFixed(2)) + "×"; $("capaGolpe").checked = !!cap().golpe;
   const nOn = S.capas.filter(c => c.on).length;
   $("capaHint").textContent = S.sel === 0 ? `Capa 1${cap().on ? "" : " apagada"}: se funde sobre la imagen limpia con su opacidad (0 % = sin efecto). Las capas 2 y 3 se mezclan encima y funcionan aunque la 1 esté apagada.${nOn ? ` Hay ${nOn} capa${nOn === 1 ? "" : "s"} activa${nOn === 1 ? "" : "s"}.` : " No hay capas activas: se ve la imagen limpia."} Cada capa guarda sus propios parámetros.`
-    : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
+    : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: ${cap().in === "abajo" ? "procesa lo que sale de las capas de abajo (en cadena)" : "procesa la imagen original y se mezcla sobre lo de abajo"}. Si no se nota, probá Mezcla → Fundido: con Sumar o Aclarar no se ve sobre una capa que ya está clara. Apagar una capa no la reinicia, y con «Ver sola» la mirás sin tocar las otras.`;
   const est = estSel(), sty = STYLES[est], p = par(); estVisto = est; $("recSoltar").value = S.recSoltar || "queda";
   slidersKF(); const md = modsDe(S.sel, est); [0, 1, 2, 3, 4, 5].forEach(i => { $("p" + (i + 1) + "L").textContent = sty.p[i]; $("md" + (i + 1)).value = md[i]; });
   $("modAmt").value = cap().modAmt ?? .5; $("modAmtO").textContent = Math.round((cap().modAmt ?? .5)*100) + "%";
@@ -1637,7 +1673,15 @@ $("hudTexto").oninput = e => { S.hudTexto = e.target.value; save(); };
 $("duoA").oninput = e => { S.duoA = e.target.value; save(); }; $("duoB").oninput = e => { S.duoB = e.target.value; save(); };
 document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const c = S.cola = S.cola || [], j = c.indexOf(b.dataset.f); if (j >= 0) c.splice(j, 1); else c.push(b.dataset.f); sync(); });
 $("styReset").onclick = () => { cap().pars[estSel()] = STYLES[estSel()].v.slice(); S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
+$("micBtn").onclick = () => MIC.on ? micCerrar() : micAbrir();
+$("micSens").oninput = e => { S.micSens = +e.target.value; micUI(); save(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
+$("capaIn").onchange = e => { cap().in = e.target.value; sync(); };
+$("capaSolo").onclick = () => { S.solo = S.solo === S.sel ? -1 : S.sel; if (S.solo >= 0) cap().on = true; sync(); };
+function moverCapa(d){ const a = S.sel, b = a + d; if (b < 0 || b > 2) return;   // cambia el lugar en la pila, con su memoria
+  [S.capas[a], S.capas[b]] = [S.capas[b], S.capas[a]]; if (R) [R.L[a], R.L[b]] = [R.L[b], R.L[a]];
+  if (S.solo === a) S.solo = b; else if (S.solo === b) S.solo = a; S.sel = b; sync(); }
+$("capaArriba").onclick = () => moverCapa(1); $("capaAbajo").onclick = () => moverCapa(-1);
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
 $("capaVel").oninput = e => { cap().vel = +e.target.value; sync(); };
 $("capaVel").ondblclick = () => { cap().vel = 1; sync(); };
