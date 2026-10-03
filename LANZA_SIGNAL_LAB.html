@@ -32,6 +32,7 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 var(--sans);margin:0}
 .bar{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);flex-wrap:wrap}
 .bar b{color:var(--fg);font-weight:500}
 .bar .name{color:var(--fg);letter-spacing:.14em}
+a.name{text-decoration:none;border:1px solid var(--line);border-radius:4px;padding:5px 10px;margin:-6px 0}a.name:hover,a.name:focus-visible{border-color:var(--fg);outline:none}
 .mon{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:18px;position:relative}
 #cv{max-width:100%;max-height:100%;height:auto;width:auto;display:block;background:#000;outline:1px solid var(--line);cursor:grab;touch-action:none}
 .drop{position:absolute;inset:18px;border:1px dashed var(--soft);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);background:rgba(0,0,0,.72)}
@@ -110,7 +111,7 @@ details.log[open] summary::before{content:"− "}
 
 <div class="app">
   <section class="stage" aria-label="Monitor">
-    <div class="bar"><span class="name">LANZA · SIGNAL LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
+    <div class="bar"><a class="name" href="./" title="Volver al inicio">← LANZA · SIGNAL LAB</a><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
     <div class="mon" id="mon">
       <canvas id="cv" width="1080" height="1920"></canvas><canvas id="msOv" hidden></canvas>
       <div class="explorar" id="explorar" hidden>
@@ -313,7 +314,7 @@ details.log[open] summary::before{content:"− "}
         <canvas id="micNivel" height="20" style="width:100%;height:20px;display:block;border:1px solid var(--line);border-radius:4px;background:#000" aria-label="Nivel del micrófono: grave y agudo"></canvas>
         <p class="hint" id="micHint">El efecto sigue al micrófono (grave arriba, agudo abajo) en vez de la música: el pulso, «Al golpe» y la modulación Grave/Agudo de cada parámetro. Funciona en la vista previa, la pantalla completa y la señal limpia; el MP4 usa la música elegida. Para que reaccione más, subí Pulso.</p>
       </div>
-      <p class="hint" id="musHint">Pulso interno: la música minimal de la serie (click en cada corte, pulso, campana, drone e impacto en el logo).</p>
+      <p class="hint" id="musHint">Pulso interno: una música minimal (click en cada corte, pulso, campana, drone e impacto en el logo).</p>
       <div id="songBox" class="grp" style="padding:0;border:0">
         <div class="seg"><button id="btnSong">Cargar canción</button><button id="btnTempo">Detectar tempo</button></div>
         <input type="file" id="songFile" accept="audio/*,video/*" hidden>
@@ -417,11 +418,6 @@ details.log[open] summary::before{content:"− "}
         </ul>
         <h4>Atajos de teclado</h4>
         <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> <kbd>Q</kbd>…<kbd>P</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>M</kbd> keyframe de la máscara</span><span><kbd>V</kbd> explorar variaciones</span></div>
-        <h4>Hereda de la serie</h4>
-        <ul>
-          <li>24 fps, blanco y negro por defecto, logo arriba y LANZAPOST.COM al pie, cierre de 3 s que aterriza en el logo real.</li>
-          <li>Grilla de 96 BPM: a 24 fps la negra dura 15 cuadros y el compás 60 (2,5 s); 6 compases son 15 s justos.</li>
-        </ul>
       </details>
     </div>
   </aside>
