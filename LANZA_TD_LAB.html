@@ -165,6 +165,7 @@ details.log[open] summary::before{content:"− "}
 
     <div class="grp">
       <h2>Capas</h2>
+      <div class="row op"><label for="efecto" title="Cuánto efecto se ve sobre la imagen limpia, para todas las capas juntas">Efecto</label><input type="range" id="efecto" min="0" max="1" step="0.01"><output id="efectoO"></output><button class="rombo" id="kfEf" title="Keyframe del efecto en este cuadro">◇</button></div>
       <div class="seg"><button class="main" id="btnExplorar">Explorar variaciones</button><button id="recG" aria-pressed="false" title="Tecla G">● Grabar gestos</button></div>
       <div class="toma" id="recBox" hidden>
         <div class="row two"><label for="recSoltar">Al soltar</label><select id="recSoltar"><option value="queda">Queda hasta el final</option><option value="vuelve">Vuelve a como estaba</option></select></div>
@@ -393,7 +394,7 @@ details.log[open] summary::before{content:"− "}
           <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
         </ul>
         <h4>Atajos de teclado</h4>
-        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>M</kbd> keyframe de la máscara</span><span><kbd>V</kbd> explorar variaciones</span></div>
+        <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> <kbd>Q</kbd>…<kbd>T</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>M</kbd> keyframe de la máscara</span><span><kbd>V</kbd> explorar variaciones</span></div>
         <h4>Hereda de la serie</h4>
         <ul>
           <li>24 fps, blanco y negro por defecto, logo arriba y LANZAPOST.COM al pie, cierre de 3 s que aterriza en el logo real.</li>
@@ -422,8 +423,13 @@ const F = () => FMT[S.fmt];
 // ─── estilos: nombre, en qué se parece a TD, los tres parámetros y sus valores de fábrica
 const STYLES = {
   feedback: {n:"Túnel de feedback", td:"Feedback TOP", d:"El cuadro anterior vuelve escalado y girado, y lo claro de la fuente se compone encima: el loop clásico de TouchDesigner. El grave empuja el zoom.", p:["Zoom","Giro","Memoria"], v:[.35,.6,.75]},
+  liquido:  {n:"Feedback líquido", td:"Feedback + Displace", d:"El cuadro anterior se derrite siguiendo un flujo de ruido y lo claro de la fuente lo vuelve a teñir: manchas que chorrean y se arremolinan. El grave acelera el flujo.", p:["Flujo","Escala","Memoria"], v:[.45,.35,.8]},
+  droste:   {n:"Pantalla en pantalla", td:"Feedback recursivo", d:"La imagen se mete adentro de sí misma, una y otra vez, como dos espejos enfrentados. Tamaño de la copia interior, giro y deriva del centro. El grave la achica de golpe.", p:["Tamaño","Giro","Deriva"], v:[.6,.55,.3]},
   desplaza: {n:"Desplazamiento", td:"Noise → Displace", d:"Un ruido fractal empuja los píxeles y separa apenas los canales. El grave sacude, los agudos abren la separación.", p:["Amplitud","Escala","Velocidad"], v:[.35,.3,.3]},
+  shake:    {n:"Cámara en mano", td:"Transform + Noise CHOP", d:"Sacudón de cámara: la imagen tiembla, gira y respira con un ruido suave o nervioso, con arrastre y canales corridos. Cada golpe del grave la sacude más.", p:["Intensidad","Nervio","Arrastre"], v:[.4,.35,.35]},
   slitscan: {n:"Slit-scan", td:"Time Machine TOP", d:"Cada franja muestra un instante distinto del pasado. Dirección: vertical, horizontal, radial o por ruido.", p:["Retardo","Dirección","Ondulación"], v:[.85,0,.2]},
+  eco:      {n:"Eco temporal", td:"Cache TOP", d:"Copias del pasado corridas al costado, cada una más vieja y de otro color, como una cronofotografía: la figura deja su rastro.", p:["Copias","Separación","Corrimiento"], v:[.45,.4,.35]},
+  laminas:  {n:"Láminas", td:"GLSL slices", d:"La imagen cortada en tiras verticales que repiten la misma parte, como un abanico o un acordeón: caras estiradas en escalones. El centro se mueve solo.", p:["Láminas","Repetición","Pliegue"], v:[.4,.6,.45]},
   trama:    {n:"Trama de puntos", td:"GLSL halftone", d:"Semitono: puntos que crecen con la luz, en una grilla que se puede girar.", p:["Celda","Ángulo","Suavidad"], v:[.2,.25,.1]},
   nube:     {n:"Nube de puntos", td:"Instancing", d:"La imagen como relieve 3D de puntos: el brillo es profundidad y la cámara gira despacio.", p:["Densidad","Profundidad","Giro"], v:[.45,.5,.45]},
   lineas:   {n:"Líneas Rutt-Etra", td:"Line SOP", d:"Líneas de barrido que se levantan con el brillo, como el sintetizador de video Rutt-Etra.", p:["Líneas","Altura","Inclinación"], v:[.4,.45,.4]},
@@ -431,13 +437,13 @@ const STYLES = {
   esfera:   {n:"Esfera", td:"Sphere SOP + Displace", d:"La imagen envuelve una esfera de puntos que gira; lo claro se levanta en relieve. El grave la infla.", p:["Densidad","Relieve","Giro"], v:[.5,.45,.4]},
   malla:    {n:"Malla 3D", td:"Grid SOP + Displace", d:"La imagen como terreno de alambre: una grilla que se levanta con el brillo mientras la cámara la recorre. El grave empuja el relieve.", p:["Resolución","Altura","Cámara"], v:[.35,.5,.45]},
   particulas:{n:"Partículas", td:"Particles GPU", d:"Miles de partículas nacen en lo claro de la imagen y viajan por un campo de ruido dejando estela. El grave las acelera.", p:["Cantidad","Remolino","Velocidad"], v:[.5,.4,.4]},
-  kaleido:  {n:"Caleidoscopio", td:"GLSL polar", d:"Espejos radiales sobre la imagen; el grave hace girar los gajos.", p:["Gajos","Giro","Zoom"], v:[.3,.6,.45]},
-  rd:       {n:"Reacción-difusión", td:"Gray-Scott", d:"Simulación química sembrada por la imagen: crecen corales donde hay luz y células en la sombra. Cada corte siembra de nuevo.", p:["Escala","Velocidad","Imagen"], v:[.35,.5,.2]},
+  tracking: {n:"Seguimiento", td:"Blob Track TOP", d:"Detecta las zonas que brillan o se mueven y las sigue con cajas numeradas, líneas que las unen y una lupa sobre la principal, como un sistema de tracking.", p:["Cajas","Luz ↔ movimiento","Detalle"], v:[.45,.5,.55]},
+  beam:     {n:"Haces de luz", td:"GLSL god rays", d:"Lo más claro de la imagen se estira en haces que salen desde una fuente de luz que se mueve, como rayos entre humo. El grave los enciende.", p:["Largo","Altura de la luz","Umbral"], v:[.55,.3,.45]},
 };
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
   bpm:96, frase:"lanza", compases:6, dur:"compases", vel:1, vin:0, vout:1, loopModo:"repetir", vueltas:1, segs:12, orden:"cargado", semilla:1,
-  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], msKfs:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
+  musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], efecto:1, kfEf:[], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], msKfs:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
 delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; }); S.capas[0].on = true; if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
@@ -510,6 +516,56 @@ void main(){
   float d = clamp(k, 0., 1.)*uP1*(uFill - 1.)*(1. - .4*min(1., PK)), d0 = floor(d);
   float l0 = mod(uHead - d0 + ${HN}., ${HN}.), l1 = mod(uHead - d0 - 1. + ${HN}., ${HN}.);
   o = vec4(mix(texture(uHist, vec3(vUv, l0)).rgb, texture(uHist, vec3(vUv, l1)).rgb, d - d0), 1.); }`,
+liquido: `void main(){
+  vec2 a = asp(), p = vUv*a*(1.2 + uP2*5.); float t = uT*.12*(1. + 1.5*PK);
+  vec2 fl = vec2(fbm(p + vec2(0., t)), fbm(p + vec2(3.1, 1.7) - t)) - .5;
+  vec2 q = vUv + fl*(.003 + uP1*.022)*(1. + 2.*PK) + vec2(0., -.0015*uP1);
+  vec3 fb = texture(uPrev, q).rgb*(.86 + uP3*.13);
+  vec3 s = texture(uSrc, vUv).rgb; float k = smoothstep(.25, .7, lum(s));
+  o = vec4(max(fb*(1. - .45*k), s*(.3 + .7*k)), 1.); }`,
+droste: `void main(){
+  vec2 a = asp(), c = (vUv - .5)*a, c0 = vec2(sin(uT*.37), cos(uT*.29))*uP3*.18;
+  float sc = (.45 + uP1*.45)*(1. - .12*min(1., PK)), r = (uP2 - .5)*.7 + sin(uT*.21)*.04;
+  vec2 q = mat2(cos(r), sin(r), -sin(r), cos(r))*(c - c0)/sc, qu = q/a + .5;
+  bool adentro = qu.x > 0. && qu.y > 0. && qu.x < 1. && qu.y < 1.;
+  vec3 s = texture(uSrc, vUv).rgb;
+  vec2 e = min(qu, 1. - qu); float borde = adentro ? 1. - smoothstep(.0, .006, min(e.x*a.x, e.y)) : 0.;
+  o = vec4(adentro ? max(texture(uPrev, qu).rgb*.97, vec3(borde*.8)) : s, 1.); }`,
+shake: `uniform vec2 uSh; uniform float uRot, uZoom;
+void main(){
+  vec2 a = asp(), c = (vUv - .5)*a; c = mat2(cos(uRot), sin(uRot), -sin(uRot), cos(uRot))*c/uZoom;
+  vec2 q = c/a + .5 + uSh; q = 1. - abs(1. - mod(q, 2.));
+  vec2 dir = normalize(uSh + 1e-5)*.006*uP3*(1. + 2.*PK);
+  vec3 s = vec3(texture(uSrc, q + dir).r, texture(uSrc, q).g, texture(uSrc, q - dir).b);
+  o = vec4(mix(s, texture(uPrev, vUv).rgb, uP3*.55), 1.); }`,
+eco: `uniform sampler2DArray uHist; uniform float uHead, uFill;
+void main(){
+  float n = 2. + floor(uP1*5.), gap = 1. + floor(uP2*4.);
+  vec3 acc = texture(uSrc, vUv).rgb;
+  for (int i=1; i<8; i++){ float fi = float(i); if (fi > n) break;
+    float l = mod(uHead - fi*gap + ${HN}.*4., ${HN}.); if (fi*gap > uFill - 1.) break;
+    vec2 q = vUv - vec2(fi*uP3*.09, 0.); if (q.x < 0.) continue;
+    vec3 c = texture(uHist, vec3(q, l)).rgb, tin = mix(vec3(1., .55, .25), vec3(.45, .3, 1.), fi/n);
+    acc = max(acc, c*tin*(1. - .55*fi/(n + 1.))); }
+  o = vec4(acc, 1.); }`,
+laminas: `void main(){
+  float n = 8. + floor(uP1*72.), s = floor(vUv.x*n), u = fract(vUv.x*n);
+  float c = .5 + .3*sin(uT*.35) + .05*PK, w = (1. + uP2*2.)/n;
+  float sx = c + (s/n - c)*(1. - uP2) + (u - .5)*w*(1. - uP2*.6);
+  float jy = (hash(vec2(s, 3.1)) - .5)*uP3*.04 + sin(s*.7 + uT*1.3)*.006*uP3;
+  float pl = mix(1., .45 + .55*smoothstep(0., .5, u)*(1. - .35*smoothstep(.7, 1., u)), uP3);
+  o = vec4(texture(uSrc, vec2(clamp(sx, 0., 1.), vUv.y + jy)).rgb*pl, 1.); }`,
+tracking: `uniform sampler2D uOver;
+void main(){
+  vec3 s = texture(uSrc, vUv).rgb; vec4 v = texture(uOver, vUv);
+  o = vec4(mix(s*.9, v.rgb, v.a), 1.); }`,
+beam: `void main(){
+  vec2 c = vec2(.5 + .28*sin(uT*.23), .08 + uP2*.84);
+  vec2 d = (vUv - c)*(.15 + uP1*.85)/48.; vec2 q = vUv; float dec = 1.; vec3 acc = vec3(0.);
+  float u0 = .25 + uP3*.6;
+  for (int i=0; i<48; i++){ q -= d; vec3 s = texture(uSrc, q).rgb; acc += s*smoothstep(u0, u0 + .2, lum(s))*dec; dec *= .962; }
+  vec3 base = texture(uSrc, vUv).rgb;
+  o = vec4(base*.8 + acc/48.*(1.5 + 2.5*PK), 1.); }`,
 trama: `void main(){
   float cell = (6. + uP1*42.)*uRes.x/uAnchoF, an = uP2*1.5708;
   mat2 R = mat2(cos(an), sin(an), -sin(an), cos(an));
@@ -517,14 +573,6 @@ trama: `void main(){
   vec3 s = texture(uSrc, (transpose(R)*g)/uRes).rgb; float L = lum(s);
   float r = sqrt(L)*cell*.7*(1. + .35*PK), aa = 1. + uP3*cell*.35;
   o = vec4((1. - smoothstep(r - aa, r + aa, length(p - g)))*mix(vec3(1.), tinte(s), .7), 1.); }`,
-kaleido: `void main(){
-  vec2 a = asp(), c = (vUv - .5)*a;
-  float r = length(c), th = atan(c.y, c.x) + uT*(uP2 - .5)*.8 + PK*.15;
-  float n = 2. + floor(uP1*10.), s = 6.2831853/n;
-  th = mod(th, s); th = abs(th - s*.5);
-  vec2 q = vec2(cos(th), sin(th))*r*(1.6 - uP3*1.2)/a + .5;
-  q = 1. - abs(1. - mod(q, 2.));
-  o = vec4(texture(uSrc, q).rgb, 1.); }`,
 pSim: `uniform sampler2D uState; uniform float uReset, uLifeF;
 vec2 curl(vec2 p){ float e = .02; return vec2(fbm(p + vec2(0., e)) - fbm(p - vec2(0., e)), -(fbm(p + vec2(e, 0.)) - fbm(p - vec2(e, 0.))))/(2.*e); }
 vec4 nace(vec2 id){ vec2 best = vec2(.5); float bl = -1.;
@@ -546,24 +594,6 @@ void main(){
   float L = pow(clamp(lum(c)*(1. + .25*PK), 0., 1.), uGamA), idx = min(uN - 1., floor(L*uN));
   float g = texture(uAtlas, vec2((idx + clamp(f.x, .02, .98))/uN, f.y)).r;
   o = vec4(max(texture(uImg, vUv).rgb*uMix, g*mix(vec3(1.), tinte(c), uTinta)), 1.); }`,
-rdSim: `uniform sampler2D uState; uniform vec2 uTex; uniform float uReset, uInject;
-void main(){
-  vec2 s = texture(uState, vUv).rg;
-  if (uReset > .5){ o = vec4(1., step(.985, hash(vUv/uTex + uSeed)), 0., 1.); return; }
-  vec2 e = vec2(uTex.x, 0.), n = vec2(0., uTex.y);
-  vec2 lap = -s + .2*(texture(uState, vUv + e).rg + texture(uState, vUv - e).rg + texture(uState, vUv + n).rg + texture(uState, vUv - n).rg)
-    + .05*(texture(uState, vUv + e + n).rg + texture(uState, vUv + e - n).rg + texture(uState, vUv - e + n).rg + texture(uState, vUv - e - n).rg);
-  float L = lum(texture(uSrc, vUv).rgb), Fd = mix(.0367, .0545, L), K = mix(.0649, .062, L);
-  float A = s.r, B = s.g, abb = A*B*B;
-  A += lap.r - abb + Fd*(1. - A);
-  B += .5*lap.g + abb - (K + Fd)*B;
-  B = max(B, uInject*step(.993, hash(vUv/uTex + uSeed*3.1))*step(.35, L));
-  o = vec4(clamp(A, 0., 1.), clamp(B, 0., 1.), 0., 1.); }`,
-rd: `uniform sampler2D uState;
-void main(){
-  float v = smoothstep(.12, .3, texture(uState, vUv).g)*(1. + .4*PK);
-  vec3 s = texture(uSrc, vUv).rgb;
-  o = vec4(max(v*mix(vec3(1.), tinte(s), .5), s*uP3*.7), 1.); }`,
 sujeto: `uniform sampler2D uImg, uMask; uniform float uZona, uCant, uOtro;
 void main(){
   vec3 e = texture(uImg, vUv).rgb, s = texture(uSrc, vUv).rgb; float m = texture(uMask, vUv).a, w = (uZona > .5 ? m : 1. - m)*uCant;
@@ -752,11 +782,11 @@ function recursos(){
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   R = {W, H, src, hw: W >> 1, hh: H >> 1, tr: [target(W, H, FLT), target(W, H, FLT)], mx: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), sj: target(W, H, FLT), mk: null, i: 0, L: [null, null, null]};
   reiniciar(); return R; }
-function soltarCapa(L){ if (!L) return; L.fx.forEach(drop); if (L.rd) L.rd.forEach(drop); if (L.pt) L.pt.forEach(drop); if (L.hist){ gl.deleteTexture(L.hist); gl.deleteFramebuffer(L.histF); } }
+function soltarCapa(L){ if (!L) return; L.fx.forEach(drop); if (L.ovT) gl.deleteTexture(L.ovT); if (L.pt) L.pt.forEach(drop); if (L.hist){ gl.deleteTexture(L.hist); gl.deleteFramebuffer(L.histF); } }
 function capaEstado(k){
   if (!R.L[k]){ R.L[k] = {fx: [target(R.W, R.H, FLT), target(R.W, R.H, FLT)], i: 0, hist: null, head: 0, fill: 0, rd: null, rdKey: "", pt: null, ptKey: ""}; limpiarCapa(R.L[k]); }
   return R.L[k]; }
-function limpiarCapa(L){ L.fx.forEach(clearT); L.fill = 0; L.head = 0; L.rdReset = true; L.ptReset = true; }
+function limpiarCapa(L){ L.fx.forEach(clearT); L.fill = 0; L.head = 0; L.ptReset = true; L.tracks = []; L.lumPrev = null; }
 function reiniciar(){ if (!R) return; R.tr.forEach(clearT); R.L.forEach(L => { if (L) limpiarCapa(L); }); }
 function histDe(L){
   if (!L.hist){ L.hist = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D_ARRAY, L.hist);
@@ -765,10 +795,6 @@ function histDe(L){
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     L.histF = gl.createFramebuffer(); L.fill = 0; L.head = 0; }
   return L.hist; }
-function rdBuffers(L, p){
-  const div = (2 + Math.round(p[0]*4))*R.W/F().W, w = Math.round(R.W/div), h = Math.round(R.H/div), key = w + "x" + h;
-  if (L.rdKey !== key){ if (L.rd) L.rd.forEach(drop); L.rd = [target(w, h, true, gl.REPEAT), target(w, h, true, gl.REPEAT)]; L.rdKey = key; L.rdI = 0; L.rdReset = true; }
-  return L.rd; }
 function ptBuffers(L, p){
   const side = Math.round(96 + p[0]*224), key = String(side);
   if (L.ptKey !== key){ if (L.pt) L.pt.forEach(drop); L.pt = [target(side, side, true, gl.CLAMP_TO_EDGE, true), target(side, side, true, gl.CLAMP_TO_EDGE, true)]; L.ptKey = key; L.ptI = 0; L.ptReset = true; }
@@ -874,18 +900,65 @@ function modVal(src, f, ft, seg, i){ const b = beatF();
 function parBase(k, st, f){ const kf = kfsDe(k, st); return parCapa(k, st).map((v, i) => kf[i].length ? kfVal(kf[i], f) : v); }
 function parEf(k, st, f, ft, seg){ const md = modsDe(k, st), amt = S.capas[k].modAmt ?? .5;
   return parBase(k, st, f).map((v, i) => Math.min(1, Math.max(0, v + (md[i] !== "fijo" ? amt*modVal(md[i], f, ft, seg, i) : 0)))); }
+const efDe = f => S.kfEf && S.kfEf.length ? kfVal(S.kfEf, f) : (S.efecto ?? 1);
 const opDe = (c, f) => c.kfOp && c.kfOp.length ? kfVal(c.kfOp, f) : c.op;
 const estiloDe = (k, seg, f) => { const c = S.capas[k]; if (c.cambios && c.cambios.length && f != null) return estiloEn(c, f); return c.seqOn && c.seq && c.seq.length ? c.seq[Math.floor(((seg && seg.k) || 0)/(c.seqCada || 1)) % c.seq.length] : c.estilo; };
+// seguimiento: busca en la fuente (chica) las zonas más claras o con más movimiento, las sigue entre cuadros con un número fijo
+// y dibuja cajas, etiquetas, líneas que las unen y una lupa sobre la principal en una capa 2D que se mezcla en el shader
+const TRK = {c: document.createElement("canvas"), id: 0};
+function trackOverlay(L, W, H, p, inC){
+  if (!L.ov){ L.ov = document.createElement("canvas"); L.ovx = L.ov.getContext("2d"); L.ovT = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, L.ovT);
+    [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(q => gl.texParameteri(gl.TEXTURE_2D, q, gl.LINEAR)); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
+  if (L.ov.width !== W || L.ov.height !== H){ L.ov.width = W; L.ov.height = H; }
+  const x = L.ovx, k = W/1080, gw = 72, gh = Math.max(8, Math.round(gw*H/W)), c = TRK.c; c.width = gw; c.height = gh;
+  x.clearRect(0, 0, W, H);
+  if (!inC){
+    const cx = c.getContext("2d", {willReadFrequently: true}); cx.drawImage(srcC, 0, 0, gw, gh); const d = cx.getImageData(0, 0, gw, gh).data, lu = new Float32Array(gw*gh);
+    for (let i=0; i<lu.length; i++) lu[i] = (d[i*4]*.299 + d[i*4+1]*.587 + d[i*4+2]*.114)/255;
+    const prev = L.lumPrev && L.lumPrev.length === lu.length ? L.lumPrev : lu, sc = new Float32Array(lu.length), mv = p[1];
+    for (let i=0; i<lu.length; i++) sc[i] = lu[i]*(1 - mv) + Math.min(1, Math.abs(lu[i] - prev[i])*6)*mv;
+    L.lumPrev = lu;
+    const N = Math.round(3 + p[0]*17), usado = new Uint8Array(lu.length), det = [];
+    for (let q=0; q<N; q++){ let b = -1, bi = 0; for (let i=0; i<sc.length; i++) if (!usado[i] && sc[i] > b){ b = sc[i]; bi = i; }
+      if (b < .15) break; const bx = bi % gw, by = (bi/gw)|0, lim = b*.6; let x0 = bx, x1 = bx, y0 = by, y1 = by;
+      while (x0 > 0 && bx - x0 < 10 && sc[by*gw + x0 - 1] > lim) x0--; while (x1 < gw - 1 && x1 - bx < 10 && sc[by*gw + x1 + 1] > lim) x1++;
+      while (y0 > 0 && by - y0 < 14 && sc[(y0 - 1)*gw + bx] > lim) y0--; while (y1 < gh - 1 && y1 - by < 14 && sc[(y1 + 1)*gw + bx] > lim) y1++;
+      for (let yy=Math.max(0, y0 - 2); yy<=Math.min(gh - 1, y1 + 2); yy++) for (let xx=Math.max(0, x0 - 2); xx<=Math.min(gw - 1, x1 + 2); xx++) usado[yy*gw + xx] = 1;
+      det.push({x: (x0 + x1 + 1)/2/gw, y: (y0 + y1 + 1)/2/gh, w: Math.max(2, x1 - x0 + 1)/gw, h: Math.max(2, y1 - y0 + 1)/gh, s: b}); }
+    const viejos = L.tracks || [], nuevos = [];   // seguir: cada detección toma el número de la caja vieja más cercana
+    det.forEach(dd => { let m = null, md = .12; viejos.forEach(v => { if (v.usado) return; const dist = Math.hypot(v.x - dd.x, v.y - dd.y); if (dist < md){ md = dist; m = v; } });
+      if (m){ m.usado = true; nuevos.push({id: m.id, x: m.x + (dd.x - m.x)*.5, y: m.y + (dd.y - m.y)*.5, w: m.w + (dd.w - m.w)*.4, h: m.h + (dd.h - m.h)*.4, s: dd.s}); }
+      else nuevos.push({id: (TRK.id = (TRK.id + 7 + ((dd.x*997)|0) % 23) % 300), ...dd}); });
+    L.tracks = nuevos;
+    const T = nuevos, det2 = p[2], lw = Math.max(1, 1.4*k);
+    x.lineWidth = lw; x.strokeStyle = "rgba(255,255,255,.85)"; x.fillStyle = "#fff"; x.font = `400 ${Math.round(13*k)}px "JetBrains Mono", monospace`; x.textBaseline = "top";
+    if (det2 > .2 && T.length > 1){ const orden = T.slice().sort((a, b) => a.id - b.id), nl = Math.round(det2*orden.length);   // líneas que unen las cajas
+      x.save(); x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = lw*.8; x.beginPath();
+      for (let i=0; i<nl && i < orden.length - 1; i++){ x.moveTo(orden[i].x*W, orden[i].y*H); x.lineTo(orden[i + 1].x*W, orden[i + 1].y*H); } x.stroke(); x.restore(); }
+    T.forEach((tr, i) => { const bw = tr.w*W*1.3, bh = tr.h*H*1.3, bx = tr.x*W - bw/2, by = tr.y*H - bh/2;
+      x.strokeRect(bx, by, bw, bh); x.fillText(String(tr.id), bx + 4*k, by + 4*k);
+      if (det2 > .5 && i < 3) x.fillText(`(${tr.x.toFixed(3)}, ${tr.y.toFixed(3)})`, bx, by + bh + 4*k);
+      if (det2 > .35){ const cl = 5*k; x.beginPath(); x.moveTo(tr.x*W - cl, tr.y*H); x.lineTo(tr.x*W + cl, tr.y*H); x.moveTo(tr.x*W, tr.y*H - cl); x.lineTo(tr.x*W, tr.y*H + cl); x.stroke(); } });
+    if (det2 > .6 && T.length){ const tr = T[0], zw = W*.3, zh = zw*1.25, zx = W - zw - 24*k, zy = H - zh - 120*k, sw = Math.max(.08, tr.w*1.6), sh = sw*zh/zw*W/H;   // lupa
+      x.drawImage(srcC, (tr.x - sw/2)*W, (tr.y - sh/2)*H, sw*W, sh*H, zx, zy, zw, zh); x.strokeRect(zx, zy, zw, zh);
+      x.save(); x.strokeStyle = "rgba(255,255,255,.5)"; x.beginPath(); x.moveTo(tr.x*W, tr.y*H); x.lineTo(zx, zy); x.stroke(); x.restore(); x.fillText("zoom " + tr.id, zx + 4*k, zy + 4*k); } }
+  gl.bindTexture(gl.TEXTURE_2D, L.ovT); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, L.ov);
+  return L.ovT; }
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
   const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = base.uT;
   const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2]};
   const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
-  if (st === "slitscan"){   // guarda la fuente en el anillo de cuadros pasados
+  if (st === "slitscan" || st === "eco"){   // guarda la fuente en el anillo de cuadros pasados
     const hist = histDe(L);
     gl.bindFramebuffer(gl.FRAMEBUFFER, L.histF); gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, hist, 0, L.head);
     gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad();
-    bindT(dst); use(P.slitscan, {...U, uHead: L.head, uFill: Math.max(1, L.fill + 1)}, {uSrc: r.src, uHist: hist}); quad();
+    bindT(dst); use(P[st], {...U, uHead: L.head, uFill: Math.max(1, L.fill + 1)}, {uSrc: r.src, uHist: hist}); quad();
     L.head = (L.head + 1) % HN; L.fill = Math.min(HN, L.fill + 1); }
+  else if (st === "shake"){   // el temblor se calcula acá (igual en la vista previa y en el MP4): ruido suave o nervioso + golpe del grave
+    const fr = .4 + p[1]*5, a0 = p[0]*(1 + 1.8*S.pulso*ft.low_e), tt = t*fr, n = (k1, k2) => Math.sin(tt*k1 + k2) + .5*Math.sin(tt*k1*2.13 + k2*1.7) + .25*Math.sin(tt*k1*4.37 + k2*.3);
+    bindT(dst); use(P.shake, {...U, uSh: [n(1.1, 0)*.022*a0, n(.93, 2.1)*.03*a0], uRot: n(.71, 4.2)*.035*a0, uZoom: 1.06 + .05*a0 + n(.53, 1.3)*.02*a0}, {uSrc: r.src, uPrev: prev.t}); quad(); }
+  else if (st === "tracking"){ const ov = trackOverlay(L, W, H, p, inC);
+    bindT(dst); use(P.tracking, U, {uSrc: r.src, uOver: ov}); quad(); }
   else if (st === "agujas"){
     clearT(dst); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); const asp = W/H, cols = Math.round(40 + p[0]*130), rows = Math.round(cols*H/W);
     use(P.g_agujas, {uCols: cols, uRows: rows, uAsp: asp, uAmp: p[1]*1.4*(1 + S.pulso*ft.low_e*.8), uTilt: -(.25 + p[2]*.6), uYaw: Math.sin(t*.27)*p[2]*.9}, {uSrc: r.src});
@@ -915,13 +988,7 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
     else { const rows = Math.round(40 + p[0]*200), cols = 240;
       use(P.g_lineas, {uRows: rows, uCols: cols, uAsp: asp, uAmp: p[1]*1.2*(1 + S.pulso*ft.low_e*.6), uTilt: -p[2]*.9}, {uSrc: r.src}); gl.drawArrays(gl.LINES, 0, rows*cols*2); }
     gl.disable(gl.BLEND); }
-  else if (st === "rd" && FLT){
-    const rd = rdBuffers(L, pb), iters = 2 + Math.round(p[1]*14), [w, h] = [rd[0].w, rd[0].h];
-    const inject = !inC && (f === seg.f0 || (S.pulso*ft.low_e > .8 && f % Math.round(beatF()) === 0)) ? 1 : 0;
-    for (let q=0; q<iters; q++){ const a = rd[L.rdI], b = rd[1 - L.rdI]; L.rdI = 1 - L.rdI;
-      bindT(b); use(P.rdSim, {...U, uTex: [1/w, 1/h], uReset: L.rdReset ? 1 : 0, uInject: q === 0 ? inject : 0}, {uSrc: r.src, uState: a.t}); quad(); L.rdReset = false; }
-    bindT(dst); use(P.rd, U, {uSrc: r.src, uState: rd[L.rdI].t}); quad(); }
-  else { bindT(dst); use(P[st] && st !== "rd" && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
+  else { bindT(dst); use(P[st] && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   return dst; }
 let VUELTA = 0;   // vueltas del loop en la vista previa (con "cada vuelta distinta", el reloj del efecto no vuelve a cero)
 const relojEf = (f, pre) => f + Math.round(S.desfase*FPS) + (S.libre && !pre && !exportando ? VUELTA*TL.total : 0);
@@ -958,6 +1025,7 @@ function render(f, pre = false, fe = relojEf(f, pre)){
     use(P.ascii, {...base, uCw: fs*.6, uCh: fs*1.2, uN: atlN, uMix: S.ascii === "sobre" ? S.amix : 0, uTinta: S.color === "color" ? .8 : 0, uGamA: S.agam}, {uImg: td.t, uAtlas: at}); quad(); img = r.as; }
   if (mk && S.sj > 0){   // figura y fondo: donde no va el efecto se ve la otra parte
     bindT(r.sj); use(P.sujeto, {...base, uZona: S.sjZona === "fondo" ? 1 : 0, uCant: Math.min(1, S.sj), uOtro: {foto: 0, flash: 1, negro: 2}[S.sjOtro]}, {uImg: img.t, uSrc: r.src, uMask: r.mk}); quad(); img = r.sj; }
+  const ef = efDe(f); if (ef < .999){ const d = r.mx[m]; bindT(d); use(P.mezcla, {uOp0: ef, uModo: 5, uZonaC: 0}, {uA: r.src, uB: img.t, uMask: mkT}); quad(); img = d; }   // fade general: cuánto efecto vs. la imagen limpia
   }
   bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "color" ? 0 : 1, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
     uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg, uDuo: S.color === "duo" ? 1 : 0, uDA: hexRGB(S.duoA), uDB: hexRGB(S.duoB)}, {uImg: img.t}); quad();
@@ -1293,7 +1361,7 @@ function loop(ts){
 $("play").onclick = () => { playing = !playing; $("play").setAttribute("aria-pressed", playing); $("play").textContent = playing ? "Pausa" : "Reproducir"; if (!playing) stopAudio(); };
 $("snd").onclick = () => { ensureCtx(); soundOn = !soundOn; $("snd").setAttribute("aria-pressed", soundOn); if (!soundOn) stopAudio(); };
 $("scrub").oninput = e => { fi = +e.target.value; stopAudio(); };
-const TECLAS_ESTILO = ["Digit1","Digit2","Digit3","Digit4","Digit5","Digit6","Digit7","Digit8","Digit9","Digit0","Minus","Equal"];
+const TECLAS_ESTILO = ["Digit1","Digit2","Digit3","Digit4","Digit5","Digit6","Digit7","Digit8","Digit9","Digit0","Minus","Equal","KeyQ","KeyW","KeyE","KeyR","KeyT"];
 document.addEventListener("keydown", e => { if (e.target.tagName === "INPUT" && (e.target.type === "text" || e.target.type === "number" || e.target.type === "color")) return;
   if (e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
   const si = TECLAS_ESTILO.indexOf(e.code); if (si >= 0 && !EX.abierto){ const k = Object.keys(STYLES)[si]; if (k){ document.querySelector(`#estilos button[data-s="${k}"]`).click(); verTab("estilo"); } return; }
@@ -1355,6 +1423,7 @@ function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
 function botonesCapas(){ const box = $("capasSeg"); box.innerHTML = "";
   [0, 1, 2].forEach(k => { const b = document.createElement("button"); b.dataset.k = k; b.onclick = () => { S.sel = k; sync(); }; box.append(b); }); }
 function sync(){
+  S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.seq) c.seq = c.seq.filter(x => STYLES[x]); if (c.cambios) c.cambios = c.cambios.filter(x => STYLES[x[1]]); });   // estilos que ya no existen (caleidoscopio, reacción-difusión)
   num.forEach(k => { $(k).value = S[k]; $(k + "O").textContent = fmtOut(k, S[k]); });
   document.querySelectorAll("#capasSeg button").forEach(b => { const k = +b.dataset.k, c = S.capas[k];
     b.innerHTML = `Capa ${k + 1}<small>${c.on ? STYLES[c.estilo].n : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
@@ -1371,7 +1440,7 @@ function sync(){
     b.onclick = () => { cap().seq.splice(q, 1); sync(); }; b.append(x); sq.append(b); });
   document.querySelectorAll("#cola button").forEach(b => b.setAttribute("aria-pressed", (S.cola || []).includes(b.dataset.f))); $("duoRow").hidden = S.color !== "duo"; $("duoA").value = S.duoA; $("duoB").value = S.duoB;
   if (est === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, p[1]*3.99|0)];
-  const sinF = (est === "rd" || est === "particulas") && !FLT;
+  const sinF = est === "particulas" && !FLT;
   $("styDesc").textContent = sty.d + (sinF ? " (Este navegador no puede simularlo: falta textura de punto flotante.)" : "");
   $("styDesc").className = "hint" + (sinF ? " warn" : "");
   document.querySelectorAll("#estilos button").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === est));
@@ -1427,6 +1496,9 @@ function slidersKF(){ const est = estSel(), kf = kfsDe(S.sel, est), v = parBase(
   if (estSel() === "slitscan") $("p2O").textContent = ["vert", "horiz", "radial", "ruido"][Math.min(3, v[1]*3.99|0)];
   const c = cap(), vo = opDe(c, fi), ko = c.kfOp || [], eo = ko.some(([f]) => f === fi);
   if (document.activeElement !== $("capaOp")) $("capaOp").value = vo; if (!REC.t.has("op")) $("capaOpO").textContent = Math.round(vo*100) + "%";
+  const ve = efDe(fi), ke = S.kfEf || [], ee = ke.some(([g]) => g === fi);
+  if (document.activeElement !== $("efecto")) $("efecto").value = ve; if (!REC.t.has("ef")) $("efectoO").textContent = Math.round(ve*100) + "%";
+  $("kfEf").className = "rombo" + (ke.length ? " has" : "") + (ee ? " on" : ""); $("kfEf").textContent = ee ? "◆" : "◇";
   $("kfOp").className = "rombo" + (ko.length ? " has" : "") + (eo ? " on" : ""); $("kfOp").textContent = eo ? "◆" : "◇";
   $("kfClear").disabled = !(Object.values(c.kfs || {}).some(l => l.some(x => x.length)) || ko.length || (c.cambios || []).length); }
 function ponerKF(i, f, v){ const L = kfsDe(S.sel, estSel())[i], j = L.findIndex(([g]) => g === f); if (j >= 0) L[j][1] = v; else { L.push([f, v]); L.sort((a, b) => a[0] - b[0]); } }
@@ -1450,6 +1522,10 @@ $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
 $("capaOp").oninput = e => { const v = +e.target.value; if (recMover("op", v)) return;
   if (cap().kfOp && cap().kfOp.length) ponerEn(cap().kfOp, fi, v); else cap().op = v; sync(); };
+$("efecto").oninput = e => { const v = +e.target.value; if (recMover("ef", v)) return;
+  if (S.kfEf && S.kfEf.length) ponerEn(S.kfEf, fi, v); else S.efecto = v; sync(); };
+$("kfEf").onclick = () => { const L = S.kfEf = S.kfEf || [], j = L.findIndex(([g]) => g === fi);
+  if (j >= 0) L.splice(j, 1); else ponerEn(L, fi, efDe(fi)); if (playing) $("play").click(); sync(); };
 $("kfOp").onclick = () => { const c = cap(), L = c.kfOp = c.kfOp || [], j = L.findIndex(([f]) => f === fi);
   if (j >= 0) L.splice(j, 1); else ponerEn(L, fi, opDe(c, fi)); if (playing) $("play").click(); sync(); };
 
@@ -1458,7 +1534,7 @@ $("kfOp").onclick = () => { const c = cap(), L = c.kfOp = c.kfOp || [], j = L.fi
 const REC = {on: false, t: new Map(), hist: []};
 const ponerEn = (L, f, v) => { const j = L.findIndex(([g]) => g === f); if (j >= 0) L[j][1] = v; else { L.push([f, v]); L.sort((a, b) => a[0] - b[0]); } };
 const borrarEn = (L, a, b) => { for (let i = L.length - 1; i >= 0; i--) if (L[i][0] > a && L[i][0] <= b) L.splice(i, 1); };   // claves en (a, b]
-function recMarca(){ REC.hist.push(JSON.stringify(S.capas.map(c => [c.kfs || {}, c.kfOp || [], c.cambios || []]))); if (REC.hist.length > 40) REC.hist.shift(); $("recUndo").disabled = false; }
+function recMarca(){ REC.hist.push(JSON.stringify({capas: S.capas.map(c => [c.kfs || {}, c.kfOp || [], c.cambios || []]), ef: S.kfEf || []})); if (REC.hist.length > 40) REC.hist.shift(); $("recUndo").disabled = false; }
 function simplificar(L, a, b, eps = .008){   // deja solo las claves necesarias para reproducir el gesto (error medido con la misma curva suave de kfVal)
   const i0 = L.findIndex(x => x[0] >= a); let i1 = -1; for (let i = L.length - 1; i >= 0; i--) if (L[i][0] <= b){ i1 = i; break; }
   if (i0 < 0 || i1 - i0 < 2) return; const P = L.slice(i0, i1 + 1), keep = new Uint8Array(P.length); keep[0] = keep[P.length - 1] = 1;
@@ -1469,11 +1545,11 @@ function simplificar(L, a, b, eps = .008){   // deja solo las claves necesarias 
 const recOrig = (t, f) => t.orig.length ? kfVal(t.orig, f) : t.base;
 function recTocar(id, v){ if (!REC.on || exportando || EX.abierto || (id === "op" && S.sel === 0)) return;
   const viejo = REC.t.get(id); if (viejo) recFin(id, "nada"); recMarca();
-  const c = cap(), L = id === "op" ? (c.kfOp = c.kfOp || []) : kfsDe(S.sel, estSel())[+id];
-  REC.t.set(id, {L, orig: L.map(x => x.slice()), base: id === "op" ? c.op : par()[+id], v, f0: null, last: null, suelto: false});
+  const c = cap(), L = id === "ef" ? (S.kfEf = S.kfEf || []) : id === "op" ? (c.kfOp = c.kfOp || []) : kfsDe(S.sel, estSel())[+id];
+  REC.t.set(id, {L, orig: L.map(x => x.slice()), base: id === "ef" ? (S.efecto ?? 1) : id === "op" ? c.op : par()[+id], v, f0: null, last: null, suelto: false});
   if (!playing) $("play").click(); }
 function recMover(id, v){ const t = REC.t.get(id); if (!t || t.suelto) return false; t.v = v;
-  $(id === "op" ? "capaOpO" : "p" + (+id + 1) + "O").textContent = Math.round(v*100) + (id === "op" ? "%" : ""); return true; }
+  $(id === "ef" ? "efectoO" : id === "op" ? "capaOpO" : "p" + (+id + 1) + "O").textContent = Math.round(v*100) + (id === "op" || id === "ef" ? "%" : ""); return true; }
 function recSoltar(id){ const t = REC.t.get(id); if (!t || t.suelto) return; if (t.f0 === null){ REC.t.delete(id); return; }
   if (S.recSoltar === "vuelve") recFin(id, "vuelve"); else t.suelto = true; }
 function recFin(id, modo){ const t = REC.t.get(id); REC.t.delete(id); if (!t || t.f0 === null) return; const L = t.L, N = TL.total;
@@ -1498,9 +1574,9 @@ function recEstilo(k){ const c = cap();   // con Grabar: el cambio de estilo que
   c.cambios = c.cambios.filter((x, i, L) => i === 0 || x[1] !== L[i - 1][1]); c.estilo = c.cambios[0][1]; }
 $("recG").onclick = () => recActivar(!REC.on);
 $("recSoltar").onchange = e => { S.recSoltar = e.target.value; save(); };
-$("recUndo").onclick = () => { const h = REC.hist.pop(); if (!h) return; REC.t.clear(); JSON.parse(h).forEach(([kfs, kfOp, cambios], k) => Object.assign(S.capas[k], {kfs, kfOp, cambios}));
+$("recUndo").onclick = () => { const h = REC.hist.pop(); if (!h) return; REC.t.clear(); const hh = JSON.parse(h); hh.capas.forEach(([kfs, kfOp, cambios], k) => Object.assign(S.capas[k], {kfs, kfOp, cambios})); S.kfEf = hh.ef;
   if (R) { R.L.forEach(soltarCapa); R.L = [null, null, null]; } lastF = -1e9; $("recUndo").disabled = !REC.hist.length; sync(); };
-["p1", "p2", "p3", "capaOp"].forEach((el, i) => { const id = el === "capaOp" ? "op" : String(i);
+["p1", "p2", "p3", "capaOp", "efecto"].forEach((el, i) => { const id = el === "capaOp" ? "op" : el === "efecto" ? "ef" : String(i);
   $(el).addEventListener("pointerdown", e => recTocar(id, +e.target.value));
 });
 addEventListener("pointerup", () => { if (!REC.t.size) return; [...REC.t.keys()].forEach(recSoltar); if (REC.on) document.activeElement.blur(); });
