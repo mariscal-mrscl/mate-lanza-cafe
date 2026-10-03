@@ -1,11 +1,13 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LANZA TD Lab</title>
-<meta name="description" content="22 estilos a la TouchDesigner en el navegador: hasta 3 capas, cámara y micrófono en vivo, keyframes, máscara y exportación MP4. Tu material no sale de tu compu.">
+<!doctype html>
+<!-- LANZA Lab · LANZAPOST · ideado y construido por Martin Casse --><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LANZA SIGNAL Lab</title>
+<meta name="description" content="22 procesadores de imagen en tiempo real (feedback, slit-scan, Rutt-Etra, desplazamiento y más) en hasta 3 capas, con cámara y micrófono en vivo, keyframes y exportación MP4. Tu material no sale de tu compu.">
+<meta name="author" content="Martin Casse"><meta name="publisher" content="LANZAPOST">
 <link rel="canonical" href="https://lab.lanzapost.com/LANZA_TD_LAB.html">
 <meta property="og:type" content="website"><meta property="og:site_name" content="LANZA Lab"><meta property="og:locale" content="es_AR">
-<meta property="og:title" content="LANZA TD Lab"><meta property="og:description" content="22 estilos a la TouchDesigner en el navegador: hasta 3 capas, cámara y micrófono en vivo, keyframes, máscara y exportación MP4. Tu material no sale de tu compu."><meta property="og:url" content="https://lab.lanzapost.com/LANZA_TD_LAB.html">
-<meta property="og:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="LANZAPOST LAB: TD Lab y ASCII Lab">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="LANZA TD Lab"><meta name="twitter:description" content="22 estilos a la TouchDesigner en el navegador: hasta 3 capas, cámara y micrófono en vivo, keyframes, máscara y exportación MP4. Tu material no sale de tu compu."><meta name="twitter:image" content="https://lab.lanzapost.com/icons/og-1200x630.png">
+<meta property="og:title" content="LANZA SIGNAL Lab"><meta property="og:description" content="22 procesadores de imagen en tiempo real (feedback, slit-scan, Rutt-Etra, desplazamiento y más) en hasta 3 capas, con cámara y micrófono en vivo, keyframes y exportación MP4. Tu material no sale de tu compu."><meta property="og:url" content="https://lab.lanzapost.com/LANZA_TD_LAB.html">
+<meta property="og:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="LANZAPOST LAB: SIGNAL Lab y ASCII Lab">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="LANZA SIGNAL Lab"><meta name="twitter:description" content="22 procesadores de imagen en tiempo real (feedback, slit-scan, Rutt-Etra, desplazamiento y más) en hasta 3 capas, con cámara y micrófono en vivo, keyframes y exportación MP4. Tu material no sale de tu compu."><meta name="twitter:image" content="https://lab.lanzapost.com/icons/og-1200x630.png">
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#050505">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>/* tipografías incluidas en el repo (vendor/fonts), así la app anda sin internet */
@@ -108,7 +110,7 @@ details.log[open] summary::before{content:"− "}
 
 <div class="app">
   <section class="stage" aria-label="Monitor">
-    <div class="bar"><span class="name">LANZA · TD LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
+    <div class="bar"><span class="name">LANZA · SIGNAL LAB</span><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
     <div class="mon" id="mon">
       <canvas id="cv" width="1080" height="1920"></canvas><canvas id="msOv" hidden></canvas>
       <div class="explorar" id="explorar" hidden>
@@ -277,7 +279,7 @@ details.log[open] summary::before{content:"− "}
       <p class="hint">Exposición sube o baja todo (en pasos de diafragma). Recuperar altas comprime lo que se quema sin oscurecer el resto: usalo cuando las capas sumadas revientan. Negros: a la derecha hunde las sombras, a la izquierda las levanta. Medios: a la derecha oscurece los grises.</p>
       <div class="row"><label for="grano">Grano</label><input type="range" id="grano" min="0" max="0.3" step="0.01"><output id="granoO"></output></div>
       <label class="chk"><input type="checkbox" id="inv"> Invertir (tinta negra sobre blanco)</label>
-      <p class="hint">Estela: cada cuadro deja rastro en los siguientes, como un Feedback TOP al final de la cadena.</p>
+      <p class="hint">Estela: cada cuadro deja rastro en los siguientes, como una memoria de cuadros al final de la cadena.</p>
     </div>
 
     <div class="grp">
@@ -402,21 +404,16 @@ details.log[open] summary::before{content:"− "}
     <div class="grp">
       <details class="log">
         <summary>Notas del lab</summary>
-        <h4>Qué es cada estilo en TouchDesigner</h4>
+        <h4>Cómo funciona cada estilo</h4>
         <ul>
-          <li><b>Túnel de feedback</b>: Feedback TOP → Transform TOP (escala y giro) → Composite con la fuente.</li>
-          <li><b>Desplazamiento</b>: Noise TOP como mapa → Displace TOP, con un corrimiento de canales.</li>
-          <li><b>Slit-scan</b>: Cache TOP + Time Machine TOP; la rampa decide qué franja viene de qué cuadro pasado.</li>
-          <li><b>Trama de puntos</b>: semitono hecho en GLSL TOP.</li>
-          <li><b>Nube de puntos</b>: TOP to CHOP / instancing de Geometry COMP, con el brillo como Z.</li>
-          <li><b>Líneas Rutt-Etra</b>: Line SOP por fila desplazada por la imagen.</li>
-          <li><b>Caleidoscopio</b>: GLSL polar con espejos.</li>
-          <li><b>Reacción-difusión</b>: Gray-Scott en un GLSL TOP con feedback, sembrado por la imagen.</li>
-          <li><b>Campo de agujas</b>: instancing de líneas, una por punto de la imagen, extruidas en Z por el brillo.</li>
-          <li><b>Esfera</b>: Sphere SOP con la imagen como textura y desplazamiento por brillo, en puntos.</li>
-          <li><b>Malla 3D</b>: Grid SOP desplazado por la imagen, dibujado en alambre (Wireframe MAT) con cámara que recorre.</li>
-          <li><b>Partículas</b>: Particles GPU que nacen en lo claro de la imagen y viajan por un campo de ruido (curl noise), con estela.</li>
-          <li><b>Panel ASCII</b>: un GLSL de caracteres al final de la cadena, sobre cualquier estilo (como el ASCII Lab, pero en vivo).</li>
+          <li><b>Memoria de cuadros</b> (túnel de feedback, feedback líquido, pantalla en pantalla, barrido): cada cuadro nuevo se mezcla con el anterior ya transformado (escalado, girado, derretido o arrastrado), así la imagen se alimenta de sí misma y deja rastro.</li>
+          <li><b>El tiempo como material</b> (slit-scan, eco temporal): el lab guarda los últimos cuadros y arma la imagen con pedazos de distintos momentos: franjas del pasado o copias cada vez más viejas.</li>
+          <li><b>Píxeles que se mueven</b> (desplazamiento, cámara en mano, láminas, prisma, haces de luz): la imagen no cambia de contenido, cambia de lugar. Un ruido, una lente o un rayo deciden de dónde sale cada punto.</li>
+          <li><b>Trama</b> (trama de puntos, matriz LED, HUD): la imagen se reduce a una grilla de puntos cuyo tamaño o brillo sigue a la luz.</li>
+          <li><b>La imagen como relieve</b> (nube de puntos, líneas Rutt-Etra, campo de agujas, esfera, malla 3D, partículas): el brillo se vuelve altura o profundidad y la imagen pasa a ser un objeto en 3D (puntos, líneas, alambre o partículas) con su propia cámara.</li>
+          <li><b>Leer la imagen</b> (seguimiento, red de datos): el lab busca lo que brilla o se mueve y le dibuja encima cajas, números y conexiones.</li>
+          <li><b>Panel ASCII</b>: convierte en caracteres el resultado de cualquier estilo, al final de la cadena (como el ASCII Lab, pero en vivo).</li>
+          <li><b>El sonido</b>: en casi todos los estilos el grave del audio (o del micrófono) empuja el parámetro principal.</li>
         </ul>
         <h4>Atajos de teclado</h4>
         <div class="teclas"><span><kbd>Espacio</kbd> reproducir</span><span><kbd>← →</kbd> cuadro a cuadro</span><span><kbd>1</kbd>…<kbd>0</kbd> <kbd>-</kbd> <kbd>=</kbd> <kbd>Q</kbd>…<kbd>P</kbd> estilo de la capa</span><span><kbd>Tab</kbd> capa siguiente</span><span><kbd>B</kbd> (mantener) ver sin efecto</span><span><kbd>K</kbd> keyframe en P1</span><span><kbd>G</kbd> grabar gestos</span><span><kbd>F</kbd> pantalla completa limpia</span><span><kbd>M</kbd> keyframe de la máscara</span><span><kbd>V</kbd> explorar variaciones</span></div>
@@ -452,30 +449,30 @@ const FMT = {
 Object.values(FMT).forEach(f => { f.CW = f.CW || f.W; f.CH = f.CH || f.H; f.X0 = (f.CW - f.W)/2; f.Y0 = (f.CH - f.H)/2; });   // dónde cae el recuadro del efecto en el lienzo
 const F = () => FMT[S.fmt];
 
-// ─── estilos: nombre, en qué se parece a TD, los tres parámetros y sus valores de fábrica
+// ─── estilos: nombre, la técnica en pocas palabras, los parámetros y sus valores de fábrica
 const STYLES = {
-  feedback: {n:"Túnel de feedback", td:"Feedback TOP", d:"El cuadro anterior vuelve escalado y girado, y lo claro de la fuente se compone encima: el loop clásico de TouchDesigner. El grave empuja el zoom.", p:["Zoom","Giro","Memoria","Centro","Deriva de color","Umbral"], v:[.35,.6,.75,.5,0,.4]},
-  liquido:  {n:"Feedback líquido", td:"Feedback + Displace", d:"El cuadro anterior se derrite siguiendo un flujo de ruido y lo claro de la fuente lo vuelve a teñir: manchas que chorrean y se arremolinan. El grave acelera el flujo.", p:["Flujo","Escala","Memoria","Velocidad","Caída","Deriva de color"], v:[.45,.35,.8,.3,.2,0]},
-  droste:   {n:"Pantalla en pantalla", td:"Feedback recursivo", d:"La imagen se mete adentro de sí misma, una y otra vez, como dos espejos enfrentados. El grave la achica de golpe.", p:["Tamaño","Giro","Deriva","Borde","Corrimiento","Memoria"], v:[.6,.55,.3,.5,.5,.85]},
-  desplaza: {n:"Desplazamiento", td:"Noise → Displace", d:"Un ruido fractal empuja los píxeles y separa apenas los canales. El grave sacude, los agudos abren la separación.", p:["Amplitud","Escala","Velocidad","Separación RGB","Dirección","Bloques"], v:[.35,.3,.3,.3,.5,0]},
-  shake:    {n:"Cámara en mano", td:"Transform + Noise CHOP", d:"Sacudón de cámara: la imagen tiembla, gira y respira con un ruido suave o nervioso, con arrastre y canales corridos. Cada golpe del grave la sacude más.", p:["Intensidad","Nervio","Arrastre","Zoom","Giro","Desenfoque"], v:[.4,.35,.35,.3,.5,.3]},
-  barrido:  {n:"Barrido", td:"Directional Blur + Feedback", d:"Larga exposición con la cámara en movimiento: la imagen se arrastra en una dirección y las luces dejan estelas, como una foto movida de noche.", p:["Largo","Ángulo","Exposición","Luces","Temblor","Memoria"], v:[.5,0,.5,.5,.3,.6]},
-  slitscan: {n:"Slit-scan", td:"Time Machine TOP", d:"Cada franja muestra un instante distinto del pasado. Dirección: vertical, horizontal, radial o por ruido.", p:["Retardo","Dirección","Ondulación","Franjas","Presente","Velocidad de onda"], v:[.85,0,.2,0,0,.3]},
-  eco:      {n:"Eco temporal", td:"Cache TOP", d:"Copias del pasado corridas al costado, cada una más vieja y de otro color, como una cronofotografía: la figura deja su rastro.", p:["Copias","Separación","Corrimiento","Dirección","Color","Desvanecer"], v:[.45,.4,.35,0,.8,.55]},
-  laminas:  {n:"Láminas", td:"GLSL slices", d:"La imagen cortada en tiras que repiten la misma parte, como un abanico o un acordeón: caras estiradas en escalones. El centro se mueve solo.", p:["Láminas","Repetición","Pliegue","Horizontal","Velocidad","Hueco"], v:[.4,.6,.45,0,.35,0]},
-  prisma:   {n:"Prisma", td:"GLSL refracción", d:"Un anillo de vidrio flota sobre la imagen: adentro la curva y separa los colores, en el borde brilla con el espectro. El grave lo agranda.", p:["Tamaño","Refracción","Dispersión","Posición X","Posición Y","Brillo del borde"], v:[.5,.5,.5,.5,.45,.5]},
-  beam:     {n:"Haces de luz", td:"GLSL god rays", d:"Lo más claro de la imagen se estira en haces que salen desde una fuente de luz que se mueve, como rayos entre humo. El grave los enciende.", p:["Largo","Altura de la luz","Umbral","Posición X","Caída","Calidez"], v:[.55,.3,.45,.5,.5,0]},
-  trama:    {n:"Trama de puntos", td:"GLSL halftone", d:"Semitono: puntos que crecen con la luz, en una grilla que se puede girar.", p:["Celda","Ángulo","Suavidad","Forma","Contraste","Tinta"], v:[.2,.25,.1,0,.5,.7]},
-  led:      {n:"Matriz LED", td:"GLSL dot matrix", d:"La imagen como un cartel de puntos de luz que se encienden con el brillo, sobre el fondo apagado. División parte la pantalla: mitad original, mitad LED.", p:["Celda","Brillo","Umbral","División","Resplandor","Fósforo"], v:[.3,.6,.45,1,.5,.3]},
-  nube:     {n:"Nube de puntos", td:"Instancing", d:"La imagen como relieve 3D de puntos: el brillo es profundidad y la cámara gira despacio.", p:["Densidad","Profundidad","Giro","Tamaño de punto","Umbral","Velocidad"], v:[.45,.5,.45,.4,.05,.35]},
-  lineas:   {n:"Líneas Rutt-Etra", td:"Line SOP", d:"Líneas de barrido que se levantan con el brillo, como el sintetizador de video Rutt-Etra.", p:["Líneas","Altura","Inclinación","Resolución","Umbral","Brillo"], v:[.4,.45,.4,.4,0,.5]},
-  agujas:   {n:"Campo de agujas", td:"Instancing de líneas", d:"De cada punto de la imagen sale una aguja que se alarga con el brillo; la cámara orbita el campo. El grave las estira.", p:["Densidad","Largo","Cámara","Velocidad","Umbral","Brillo"], v:[.4,.5,.5,.3,.07,.5]},
-  esfera:   {n:"Esfera", td:"Sphere SOP + Displace", d:"La imagen envuelve una esfera de puntos que gira; lo claro se levanta en relieve. El grave la infla.", p:["Densidad","Relieve","Giro","Tamaño de punto","Radio","Umbral"], v:[.5,.45,.4,.4,.5,.07]},
-  malla:    {n:"Malla 3D", td:"Grid SOP + Displace", d:"La imagen como terreno de alambre: una grilla que se levanta con el brillo mientras la cámara la recorre. El grave empuja el relieve.", p:["Resolución","Altura","Cámara","Velocidad","Umbral","Brillo"], v:[.35,.5,.45,.3,0,.5]},
-  particulas:{n:"Partículas", td:"Particles GPU", d:"Miles de partículas nacen en lo claro de la imagen y viajan por un campo de ruido dejando estela. El grave las acelera.", p:["Cantidad","Remolino","Velocidad","Vida","Estela","Tamaño"], v:[.5,.4,.4,.4,.5,.4]},
-  tracking: {n:"Seguimiento", td:"Blob Track TOP", d:"Detecta las zonas que brillan o se mueven y las sigue con cajas numeradas, líneas que las unen y una lupa sobre la principal, como un sistema de tracking.", p:["Cajas","Luz ↔ movimiento","Detalle","Lupa","Texto","Color"], v:[.45,.5,.55,.4,.5,0]},
-  red:      {n:"Red de datos", td:"Point SOP + Text", d:"Puntos sobre los bordes y las luces de la imagen, unidos en una red con números, cajas y recortes pixelados que siguen lo que se mueve.", p:["Puntos","Conexiones","Etiquetas","Mosaico","Suavidad","Grosor"], v:[.5,.5,.5,.35,.6,.3]},
-  hud:      {n:"HUD", td:"Dot matrix + overlay", d:"La figura en puntos de luz con una interfaz encima: esquinas que enmarcan lo que se mueve, marcas, retícula punteada, rótulos y un título.", p:["Celda","Umbral","Marcas","Texto","Retícula","Resplandor"], v:[.35,.35,.5,.5,.5,.5]},
+  feedback: {n:"Túnel de feedback", tec:"bucle de cuadros", d:"El cuadro anterior vuelve escalado y girado, y lo claro de la fuente se compone encima: un bucle que se alimenta de sí mismo. El grave empuja el zoom.", p:["Zoom","Giro","Memoria","Centro","Deriva de color","Umbral"], v:[.35,.6,.75,.5,0,.4]},
+  liquido:  {n:"Feedback líquido", tec:"bucle + flujo", d:"El cuadro anterior se derrite siguiendo un flujo de ruido y lo claro de la fuente lo vuelve a teñir: manchas que chorrean y se arremolinan. El grave acelera el flujo.", p:["Flujo","Escala","Memoria","Velocidad","Caída","Deriva de color"], v:[.45,.35,.8,.3,.2,0]},
+  droste:   {n:"Pantalla en pantalla", tec:"imagen recursiva", d:"La imagen se mete adentro de sí misma, una y otra vez, como dos espejos enfrentados. El grave la achica de golpe.", p:["Tamaño","Giro","Deriva","Borde","Corrimiento","Memoria"], v:[.6,.55,.3,.5,.5,.85]},
+  desplaza: {n:"Desplazamiento", tec:"ruido que empuja", d:"Un ruido fractal empuja los píxeles y separa apenas los canales. El grave sacude, los agudos abren la separación.", p:["Amplitud","Escala","Velocidad","Separación RGB","Dirección","Bloques"], v:[.35,.3,.3,.3,.5,0]},
+  shake:    {n:"Cámara en mano", tec:"temblor de cámara", d:"Sacudón de cámara: la imagen tiembla, gira y respira con un ruido suave o nervioso, con arrastre y canales corridos. Cada golpe del grave la sacude más.", p:["Intensidad","Nervio","Arrastre","Zoom","Giro","Desenfoque"], v:[.4,.35,.35,.3,.5,.3]},
+  barrido:  {n:"Barrido", tec:"larga exposición", d:"Larga exposición con la cámara en movimiento: la imagen se arrastra en una dirección y las luces dejan estelas, como una foto movida de noche.", p:["Largo","Ángulo","Exposición","Luces","Temblor","Memoria"], v:[.5,0,.5,.5,.3,.6]},
+  slitscan: {n:"Slit-scan", tec:"franjas del pasado", d:"Cada franja muestra un instante distinto del pasado. Dirección: vertical, horizontal, radial o por ruido.", p:["Retardo","Dirección","Ondulación","Franjas","Presente","Velocidad de onda"], v:[.85,0,.2,0,0,.3]},
+  eco:      {n:"Eco temporal", tec:"copias en el tiempo", d:"Copias del pasado corridas al costado, cada una más vieja y de otro color, como una cronofotografía: la figura deja su rastro.", p:["Copias","Separación","Corrimiento","Dirección","Color","Desvanecer"], v:[.45,.4,.35,0,.8,.55]},
+  laminas:  {n:"Láminas", tec:"tiras repetidas", d:"La imagen cortada en tiras que repiten la misma parte, como un abanico o un acordeón: caras estiradas en escalones. El centro se mueve solo.", p:["Láminas","Repetición","Pliegue","Horizontal","Velocidad","Hueco"], v:[.4,.6,.45,0,.35,0]},
+  prisma:   {n:"Prisma", tec:"lente de vidrio", d:"Un anillo de vidrio flota sobre la imagen: adentro la curva y separa los colores, en el borde brilla con el espectro. El grave lo agranda.", p:["Tamaño","Refracción","Dispersión","Posición X","Posición Y","Brillo del borde"], v:[.5,.5,.5,.5,.45,.5]},
+  beam:     {n:"Haces de luz", tec:"rayos de luz", d:"Lo más claro de la imagen se estira en haces que salen desde una fuente de luz que se mueve, como rayos entre humo. El grave los enciende.", p:["Largo","Altura de la luz","Umbral","Posición X","Caída","Calidez"], v:[.55,.3,.45,.5,.5,0]},
+  trama:    {n:"Trama de puntos", tec:"semitono", d:"Semitono: puntos que crecen con la luz, en una grilla que se puede girar.", p:["Celda","Ángulo","Suavidad","Forma","Contraste","Tinta"], v:[.2,.25,.1,0,.5,.7]},
+  led:      {n:"Matriz LED", tec:"puntos de luz", d:"La imagen como un cartel de puntos de luz que se encienden con el brillo, sobre el fondo apagado. División parte la pantalla: mitad original, mitad LED.", p:["Celda","Brillo","Umbral","División","Resplandor","Fósforo"], v:[.3,.6,.45,1,.5,.3]},
+  nube:     {n:"Nube de puntos", tec:"relieve de puntos", d:"La imagen como relieve 3D de puntos: el brillo es profundidad y la cámara gira despacio.", p:["Densidad","Profundidad","Giro","Tamaño de punto","Umbral","Velocidad"], v:[.45,.5,.45,.4,.05,.35]},
+  lineas:   {n:"Líneas Rutt-Etra", tec:"líneas de barrido", d:"Líneas de barrido que se levantan con el brillo, como el sintetizador de video Rutt-Etra.", p:["Líneas","Altura","Inclinación","Resolución","Umbral","Brillo"], v:[.4,.45,.4,.4,0,.5]},
+  agujas:   {n:"Campo de agujas", tec:"agujas en 3D", d:"De cada punto de la imagen sale una aguja que se alarga con el brillo; la cámara orbita el campo. El grave las estira.", p:["Densidad","Largo","Cámara","Velocidad","Umbral","Brillo"], v:[.4,.5,.5,.3,.07,.5]},
+  esfera:   {n:"Esfera", tec:"esfera de puntos", d:"La imagen envuelve una esfera de puntos que gira; lo claro se levanta en relieve. El grave la infla.", p:["Densidad","Relieve","Giro","Tamaño de punto","Radio","Umbral"], v:[.5,.45,.4,.4,.5,.07]},
+  malla:    {n:"Malla 3D", tec:"terreno de alambre", d:"La imagen como terreno de alambre: una grilla que se levanta con el brillo mientras la cámara la recorre. El grave empuja el relieve.", p:["Resolución","Altura","Cámara","Velocidad","Umbral","Brillo"], v:[.35,.5,.45,.3,0,.5]},
+  particulas:{n:"Partículas", tec:"partículas en flujo", d:"Miles de partículas nacen en lo claro de la imagen y viajan por un campo de ruido dejando estela. El grave las acelera.", p:["Cantidad","Remolino","Velocidad","Vida","Estela","Tamaño"], v:[.5,.4,.4,.4,.5,.4]},
+  tracking: {n:"Seguimiento", tec:"seguimiento", d:"Detecta las zonas que brillan o se mueven y las sigue con cajas numeradas, líneas que las unen y una lupa sobre la principal, como un sistema de tracking.", p:["Cajas","Luz ↔ movimiento","Detalle","Lupa","Texto","Color"], v:[.45,.5,.55,.4,.5,0]},
+  red:      {n:"Red de datos", tec:"red de puntos", d:"Puntos sobre los bordes y las luces de la imagen, unidos en una red con números, cajas y recortes pixelados que siguen lo que se mueve.", p:["Puntos","Conexiones","Etiquetas","Mosaico","Suavidad","Grosor"], v:[.5,.5,.5,.35,.6,.3]},
+  hud:      {n:"HUD", tec:"interfaz encima", d:"La figura en puntos de luz con una interfaz encima: esquinas que enmarcan lo que se mueve, marcas, retícula punteada, rótulos y un título.", p:["Celda","Umbral","Marcas","Texto","Retícula","Resplandor"], v:[.35,.35,.5,.5,.5,.5]},
 };
 
 const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", estela:0, gam:1, grano:.05, inv:false, expo:0, con:1, altas:0, neg:0,
@@ -1554,7 +1551,7 @@ async function detectarTempo(){   // flujo de energía a 100 Hz → autocorrelac
   S.bpm = Math.abs(bpm - Math.round(bpm)) < .2 ? Math.round(bpm) : Math.round(bpm*10)/10; S.songOff = Math.max(0, S.songOff + bp/100);
   $("musHint").textContent = `Tempo medido: ${S.bpm} BPM. El arranque quedó en un tiempo (${S.songOff.toFixed(2)} s); si no es el uno del compás, corrélo con los botones.`; sync(); }
 
-// ─── reproducción (con audio, el reloj del audio manda; en pausa el estilo sigue cocinando a 24 fps, como en TD)
+// ─── reproducción (con audio, el reloj del audio manda; en pausa el estilo sigue cocinando a 24 fps)
 let actx = null, master = null, recDest = null, soundOn = false, srcNode = null, t0 = 0, f0 = 0;
 function ensureCtx(){ if (!actx){ actx = new AudioContext(); master = actx.createGain(); master.connect(actx.destination); recDest = actx.createMediaStreamDestination(); master.connect(recDest); }
   master.gain.value = S.vol; if (actx.state === "suspended") actx.resume(); }
@@ -1640,7 +1637,7 @@ document.querySelector('#exAmp [data-x="medio"]').setAttribute("aria-pressed", "
 const num = ["songLen","msX","msY","msW","msH","msR","msGiro","msSuave","desfase","pre","sj","sjU","sjB","pinR","expo","altas","con","neg","afs","apeso","agam","amix","velo","pulso","estela","gam","grano","semilla","compases","vel","vin","vout","vueltas","segs","vol","esc","px","py"];
 const fmtOut = (k, v) => k === "songLen" ? (+v).toFixed(1) + " s" : k === "msGiro" ? v + "°" : ["msX","msY","msW","msH","msR"].includes(k) ? Math.round(v*100) + "%" : k === "msSuave" ? Math.round(v*1000)/10 + "%" : k === "vel" ? "×" + (+v).toFixed(2) : k === "vin" || k === "vout" ? enSeg(v) : k === "vueltas" ? "×" + v : k === "segs" ? (+v).toFixed(1) + " s" : k === "desfase" ? (+v).toFixed(2) + " s" : k === "pre" ? (v/FPS).toFixed(1) + " s" : k === "sj" ? Math.round(v*100) + "%" : k === "sjU" ? (+v).toFixed(2) : k === "sjB" || k === "pinR" ? v + " px" : k === "expo" ? (v > 0 ? "+" : "") + (+v).toFixed(2) + " EV" : k === "con" ? "×" + (+v).toFixed(2) : k === "neg" ? (v > 0 ? "+" : "") + Math.round(v*100) : ["estela","vol","esc","velo","amix","altas"].includes(k) ? Math.round(v*100) + "%" : ["gam","pulso","grano","agam"].includes(k) ? (+v).toFixed(2) : k === "px" || k === "py" ? (v > 0 ? "+" : "") + Math.round(v*100) : v;
 function botonesEstilo(){ const box = $("estilos"); box.innerHTML = "";
-  for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].td}</small>`;
+  for (const k in STYLES){ const b = document.createElement("button"); b.dataset.s = k; b.innerHTML = `${STYLES[k].n}<small>${STYLES[k].tec}</small>`;
     b.onclick = () => { recEstilo(k); if (R && R.L[S.sel] && !REC.on){ soltarCapa(R.L[S.sel]); R.L[S.sel] = null; } lastF = -1e9; sync(); }; box.append(b); } }
 function botonesCapas(){ const box = $("capasSeg"); box.innerHTML = "";
   [0, 1, 2].forEach(k => { const b = document.createElement("button"); b.dataset.k = k; b.onclick = () => { S.sel = k; sync(); }; box.append(b); }); }
@@ -1700,7 +1697,7 @@ function sync(){
   if (S.loopModo === "idavuelta") items.forEach(it => { if (it.vid && it.el.readyState >= 1) memPreparar(it); }); else items.forEach(it => { if (it.mem) memSoltar(it); });
   $("memInfo").hidden = S.loopModo !== "idavuelta" || !vid0(); memAviso();
   $("json").value = JSON.stringify(ajustes()); save(); renderMios(); rearmarAudio(); }
-function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: S.capas.map((c, k) => c.on ? {capa: k + 1, estilo: c.estilo, valores: parCapa(k, c.estilo)} : null).filter(Boolean), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
+function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA SIGNAL Lab", ...rest, parametros: S.capas.map((c, k) => c.on ? {capa: k + 1, estilo: c.estilo, valores: parCapa(k, c.estilo)} : null).filter(Boolean), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
 const on = (sel, attr, key, extra) => document.querySelectorAll(sel).forEach(b => b.onclick = () => { S[key] = b.dataset[attr]; if (extra) extra(); sync(); });
 on("#color button", "c", "color"); on("#orden button", "o", "orden"); on("#musica button", "m", "musica", () => { $("musHint").className = "hint"; ensureCtx(); });
 on("#fmt button", "f", "fmt", () => { _lc = null; reiniciar(); }); on("#ajuste button[data-a]", "a", "ajuste");
@@ -1858,13 +1855,13 @@ $("psave").onclick = () => { const on = S.capas.filter(c => c.on), n = $("pname"
   LOOK.forEach(k => s[k] = S[k]); MIOS = MIOS.filter(m => m.n !== n); MIOS.push({n, s}); guardarMios(); $("pname").value = ""; renderMios(); };
 function bajarJSON(obj, nombre, etiqueta){ link(new Blob([JSON.stringify(obj, null, 1)], {type: "application/json"}), nombre, etiqueta); verTab("salida"); }
 function leerJSON(file){ return file.text().then(t => JSON.parse(t)); }
-$("pexp").onclick = () => bajarJSON({lab: "LANZA TD Lab", presets: MIOS}, "lanza_td_presets.json", `Descargar presets (${MIOS.length})`);
+$("pexp").onclick = () => bajarJSON({lab: "LANZA SIGNAL Lab", presets: MIOS}, "lanza_signal_presets.json", `Descargar presets (${MIOS.length})`);
 $("pimp").onclick = () => $("pfile").click();
 $("pfile").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try { const d = await leerJSON(f), lista = d.presets || d.mios || []; lista.forEach(m => { if (m && m.n && m.s){ MIOS = MIOS.filter(x => x.n !== m.n); MIOS.push(m); } }); guardarMios(); renderMios();
-    $("projHint").textContent = `Importados ${lista.length} presets.`; } catch(err){ $("projHint").textContent = "Ese archivo no es de presets del TD Lab."; } };
-$("projSave").onclick = () => { const {par: pp, ...rest} = S; bajarJSON({lab: "LANZA TD Lab", version: 1, ajustes: {...rest, par: pp}, presets: MIOS, pincel: pinPlano(), material: $("srcName").textContent},
-  `lanza_td_proyecto_${new Date().toISOString().slice(0, 10)}.json`, "Descargar proyecto"); };
+    $("projHint").textContent = `Importados ${lista.length} presets.`; } catch(err){ $("projHint").textContent = "Ese archivo no es de presets del SIGNAL Lab."; } };
+$("projSave").onclick = () => { const {par: pp, ...rest} = S; bajarJSON({lab: "LANZA SIGNAL Lab", version: 1, ajustes: {...rest, par: pp}, presets: MIOS, pincel: pinPlano(), material: $("srcName").textContent},
+  `lanza_signal_proyecto_${new Date().toISOString().slice(0, 10)}.json`, "Descargar proyecto"); };
 $("projOpen").onclick = () => $("projFile").click();
 $("projFile").onchange = async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try { const d = await leerJSON(f); if (!d.ajustes) throw 0; Object.assign(S, d.ajustes); (d.presets || []).forEach(m => { MIOS = MIOS.filter(x => x.n !== m.n); MIOS.push(m); }); guardarMios();
@@ -2083,7 +2080,7 @@ async function exportar(){
         while (ae.encodeQueueSize > 20) await new Promise(r => setTimeout(r, 2)); }
       await ae.flush(); ae.close(); if (errs.length) throw errs[0]; }
     muxer.finalize(); const blob = new Blob([tgt.buffer], {type: "video/mp4"}), mb = (blob.size/1048576).toFixed(1), seg = ((performance.now() - t1)/1000).toFixed(0);
-    link(blob, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}_${W}x${H}${NV > 1 ? "_x" + NV : ""}.mp4`, `Descargar MP4 (${W}×${H}, 24 fps, ${(total/FPS).toFixed(1)} s, ${mb} MB${ac ? ", con sonido" : pcm ? ", sin sonido: el navegador no codifica audio" : ", mudo"})`);
+    link(blob, `lanza_signal_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}_${W}x${H}${NV > 1 ? "_x" + NV : ""}.mp4`, `Descargar MP4 (${W}×${H}, 24 fps, ${(total/FPS).toFixed(1)} s, ${mb} MB${ac ? ", con sonido" : pcm ? ", sin sonido: el navegador no codifica audio" : ", mudo"})`);
     $("progBar").style.width = "100%"; msg(`Listo en ${seg} s: ${total} cuadros exactos${ac ? ` con audio ${ac.mux === "aac" ? "AAC" : "Opus"}` : ""}. El archivo está abajo.`);
   } catch(e){ msg("La exportación falló: " + (e.message || e) + ". Probá con calidad Alta o Liviana, o «Grabar en tiempo real».", true); try { ve.close(); } catch(_) {} }
   finally { exportando = false; fi = fiAntes; playing = playAntes; lastF = -1e9; $("exp").disabled = false; $("rec").disabled = false; $("cancelExp").hidden = true; setTimeout(() => { $("prog").hidden = true; }, 1500); } }
@@ -2113,7 +2110,7 @@ $("expCola").onclick = async () => { const lista = [...document.querySelectorAll
   const antes = S.fmt; colaCorte = false; $("expCola").disabled = true;
   try { for (const [q, f] of lista.entries()){ if (colaCorte) break; S.fmt = f; _lc = null; reiniciar(); sync(); $("expCola").textContent = `Exportando ${q + 1} de ${lista.length}…`; await exportar(); } }
   finally { S.fmt = antes; _lc = null; lastF = -1e9; sync(); $("expCola").disabled = false; $("expCola").textContent = "Exportar los marcados"; } };
-$("png").onclick = () => cv.toBlob(b => link(b, `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
+$("png").onclick = () => cv.toBlob(b => link(b, `lanza_signal_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
 $("rec").onclick = () => {
   if (recorder) return; if (!cv.captureStream || !window.MediaRecorder){ $("expHint").textContent = "Este navegador no puede grabar el lienzo."; return; }
   const conAudio = soundOn && PLAY && actx;
@@ -2122,7 +2119,7 @@ $("rec").onclick = () => {
   const st = cv.captureStream(FPS); if (conAudio) recDest.stream.getAudioTracks().forEach(t => st.addTrack(t));
   const ch = []; recorder = new MediaRecorder(st, {mimeType: mt, videoBitsPerSecond: 16e6});
   recorder.ondataavailable = e => e.data.size && ch.push(e.data);
-  recorder.onstop = () => { const ext = mt.includes("mp4") ? "mp4" : "webm"; link(new Blob(ch, {type: mt || "video/webm"}), `lanza_td_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}.${ext}`, `Descargar grabación en tiempo real (${ext}, ${(TL.total/FPS).toFixed(1)} s${conAudio ? ", con sonido" : ", mudo"})`); $("rec").textContent = "Grabar en tiempo real"; };
+  recorder.onstop = () => { const ext = mt.includes("mp4") ? "mp4" : "webm"; link(new Blob(ch, {type: mt || "video/webm"}), `lanza_signal_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${S.fmt}.${ext}`, `Descargar grabación en tiempo real (${ext}, ${(TL.total/FPS).toFixed(1)} s${conAudio ? ", con sonido" : ", mudo"})`); $("rec").textContent = "Grabar en tiempo real"; };
   fi = 0; acc = 0; stopAudio(); playing = true; $("play").setAttribute("aria-pressed", true); $("play").textContent = "Pausa"; recorder.start(); $("rec").textContent = "Grabando…"; };
 $("copy").onclick = async () => { const t = JSON.stringify(ajustes(), null, 1);
   try { await navigator.clipboard.writeText(t); $("copy").textContent = "Copiado"; setTimeout(() => $("copy").textContent = "Copiar ajustes", 1500); }

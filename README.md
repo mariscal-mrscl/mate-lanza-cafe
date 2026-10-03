@@ -1,12 +1,12 @@
 # LANZA · labs
 
-Herramientas para armar las piezas de LANZAPOST. Todo corre en el navegador: el material no se sube a ningún lado.
+Procesadores de video para artistas visuales, creados por LANZAPOST. Ideado y construido por Martin Casse. Todo corre en el navegador: el material no se sube a ningún lado.
 
 - **index.html**: portada con los dos labs y el botón para instalarlos como app.
 - **LANZA_ASCII_LAB.html**: ASCII, palabra, dither y campo de lanzas sobre fotos y videos, con montaje por match cut, grilla BPM, velocidad del clip, cámara y micrófono en vivo y exportación MP4.
 
 Los dos labs comparten el funcionamiento general: los mismos 9 formatos (9:16, Storie 80 %, 4:5 contenido, 4:5, 3:4, 1:1, 4:3, 16:9 y 2.39:1), el grupo Clip en Material (velocidad, qué pasa cuando el clip termina y duración), encuadre con llenar o encajar, escala y posición, música (audio del video, pulso interno, canción o nada), sujeto con pincel, keyframes, presets y proyecto en archivo, y Salida con MP4 cuadro por cuadro, varios formatos de una vez y pantalla completa limpia.
-- **LANZA_TD_LAB.html**: 22 estilos a la TouchDesigner en WebGL con 6 parámetros cada uno y velocidad por capa (túnel de feedback, feedback líquido, pantalla en pantalla, desplazamiento, cámara en mano, barrido, slit-scan, eco temporal, láminas, prisma, haces de luz, trama, matriz LED, nube de puntos, líneas Rutt-Etra, campo de agujas, esfera, malla 3D, partículas, seguimiento, red de datos, HUD), hasta 3 capas (cualquiera se puede apagar sin perder su memoria, reordenar, ver sola o encadenar para que procese lo de abajo) con un fade general del efecto, panel ASCII, controles de luz, separación de figura y fondo (IA, luz o movimiento, con pincel de corrección), keyframes y grabación de gestos en vivo (lo que movés mientras corre queda escrito cuadro a cuadro), desfase del reloj del efecto respecto del clip, controles de clip (velocidad, entrada y salida, repetir, ida y vuelta —la vuelta sale de una memoria de cuadros, fluida— o congelar), duración por largo del clip × vueltas, en segundos o por un tramo elegido de la canción (con su forma de onda), exportación repetida con el efecto corriendo de largo, señal limpia (pantalla completa o ventana aparte), cámara en vivo como fuente, micrófono en vivo para que el efecto siga el sonido y máscara de salida (rectángulo, elipse o polígono editable, animable con keyframes). Mismo flujo: grilla BPM, música, encuadres, logo y cierre, exportación MP4 cuadro por cuadro a 24 fps.
+- **LANZA_TD_LAB.html** (SIGNAL Lab): 22 procesadores de imagen en WebGL con 6 parámetros cada uno y velocidad por capa (túnel de feedback, feedback líquido, pantalla en pantalla, desplazamiento, cámara en mano, barrido, slit-scan, eco temporal, láminas, prisma, haces de luz, trama, matriz LED, nube de puntos, líneas Rutt-Etra, campo de agujas, esfera, malla 3D, partículas, seguimiento, red de datos, HUD), hasta 3 capas (cualquiera se puede apagar sin perder su memoria, reordenar, ver sola o encadenar para que procese lo de abajo) con un fade general del efecto, panel ASCII, controles de luz, separación de figura y fondo (IA, luz o movimiento, con pincel de corrección), keyframes y grabación de gestos en vivo (lo que movés mientras corre queda escrito cuadro a cuadro), desfase del reloj del efecto respecto del clip, controles de clip (velocidad, entrada y salida, repetir, ida y vuelta —la vuelta sale de una memoria de cuadros, fluida— o congelar), duración por largo del clip × vueltas, en segundos o por un tramo elegido de la canción (con su forma de onda), exportación repetida con el efecto corriendo de largo, señal limpia (pantalla completa o ventana aparte), cámara en vivo como fuente, micrófono en vivo para que el efecto siga el sonido y máscara de salida (rectángulo, elipse o polígono editable, animable con keyframes). Mismo flujo: grilla BPM, música, encuadres, logo y cierre, exportación MP4 cuadro por cuadro a 24 fps.
 
 ## Usarlo como app
 
@@ -15,7 +15,7 @@ Publicado con https (GitHub Pages) o servido desde `localhost`, la portada ofrec
 - `manifest.webmanifest` e `icons/`: nombre, íconos y accesos directos a cada lab.
 - `sw.js`: guarda la app en la compu. Las páginas se piden primero a la red (así llegan los cambios); librerías, tipografías, íconos y el video de muestra salen de lo guardado. Si cambiás algo que no sea una página, subí `VERSION` en `sw.js`.
 - `vendor/`: TensorFlow.js, mp4-muxer y las tipografías, para no depender de internet (ver `vendor/README.md`). Si faltan, los labs usan la versión de internet.
-- `muestras/paraASCII-001.mp4`: video de muestra del TD Lab.
+- `muestras/paraASCII-001.mp4`: video de muestra del SIGNAL Lab.
 
 ## Publicar con un dominio (GitHub Pages)
 

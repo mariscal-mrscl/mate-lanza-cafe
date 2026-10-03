@@ -1,10 +1,12 @@
-<!doctype html><html><head><meta charset=utf8>
-<meta name="description" content="ASCII, dither y campo de lanzas con match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu.">
+<!doctype html>
+<!-- LANZA Lab · LANZAPOST · ideado y construido por Martin Casse --><html><head><meta charset=utf8>
+<meta name="description" content="Convierte video en texto, dither y campos de lanzas. Match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu.">
+<meta name="author" content="Martin Casse"><meta name="publisher" content="LANZAPOST">
 <link rel="canonical" href="https://lab.lanzapost.com/LANZA_ASCII_LAB.html">
 <meta property="og:type" content="website"><meta property="og:site_name" content="LANZA Lab"><meta property="og:locale" content="es_AR">
-<meta property="og:title" content="LANZA ASCII Lab"><meta property="og:description" content="ASCII, dither y campo de lanzas con match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu."><meta property="og:url" content="https://lab.lanzapost.com/LANZA_ASCII_LAB.html">
-<meta property="og:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="LANZAPOST LAB: TD Lab y ASCII Lab">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="LANZA ASCII Lab"><meta name="twitter:description" content="ASCII, dither y campo de lanzas con match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu."><meta name="twitter:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta property="og:title" content="LANZA ASCII Lab"><meta property="og:description" content="Convierte video en texto, dither y campos de lanzas. Match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu."><meta property="og:url" content="https://lab.lanzapost.com/LANZA_ASCII_LAB.html">
+<meta property="og:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="LANZAPOST LAB: SIGNAL Lab y ASCII Lab">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="LANZA ASCII Lab"><meta name="twitter:description" content="Convierte video en texto, dither y campos de lanzas. Match cut, grilla BPM, cámara y micrófono en vivo y exportación MP4. Tu material no sale de tu compu."><meta name="twitter:image" content="https://lab.lanzapost.com/icons/og-1200x630.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>LANZA ASCII Lab</title>
 <link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#050505">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -160,7 +162,7 @@ details.log[open] summary::before{content:"− "}
       <h2>Clip</h2>
       <div class="row"><label for="vel">Velocidad</label><input type="range" id="vel" min="0.25" max="3" step="0.05"><output id="velO"></output></div>
       <div class="seg" id="velSeg"><button data-v="0.25">¼</button><button data-v="0.5">½</button><button data-v="1">×1</button><button data-v="1.5">×1.5</button><button data-v="2">×2</button></div>
-      <p class="hint" id="clipHint">Velocidad del material, como en el TD Lab: lento estira cada toma (repite cuadros), rápido la acorta (saltea). El audio del video la sigue, cambiando el tono como una cinta.</p>
+      <p class="hint" id="clipHint">Velocidad del material, como en el SIGNAL Lab: lento estira cada toma (repite cuadros), rápido la acorta (saltea). El audio del video la sigue, cambiando el tono como una cinta.</p>
     </div>
 
     <div class="grp">
@@ -374,7 +376,7 @@ details.log[open] summary::before{content:"− "}
       </div>
       <h3>Señal limpia</h3>
       <div class="seg"><button id="limpia">Pantalla completa</button></div>
-      <p class="hint">Solo la imagen, sin paneles, para un proyector o un segundo monitor (como en el TD Lab). Los atajos siguen andando; Esc vuelve.</p>
+      <p class="hint">Solo la imagen, sin paneles, para un proyector o un segundo monitor (como en el SIGNAL Lab). Los atajos siguen andando; Esc vuelve.</p>
       <p class="hint" id="outHint">Grabar en tiempo real captura la reproducción tal como se ve (puede perder cuadros si la compu no llega). Copiar ajustes incluye la secuencia exacta de fotos, reencuadres y cuadros, para que Claude renderice la versión final.</p>
       <div class="links" id="links"></div>
       <textarea id="json" readonly aria-label="Ajustes"></textarea>
@@ -1340,7 +1342,7 @@ const TAB_DE = {Fuente: "material", Clip: "material", Encuadre: "material", Esti
 { const panel = document.querySelector(".panel"), gs = [...panel.querySelectorAll(":scope > .grp")], nom = g => { const h = g.querySelector(":scope > h2"); return h ? h.textContent.trim() : ""; };
   Object.keys(TAB_DE).forEach(n => { const g = gs.find(x => nom(x) === n); if (g){ g.dataset.tab = TAB_DE[n]; panel.append(g); } });
   gs.filter(g => !g.dataset.tab).forEach(g => { g.dataset.tab = "exportar"; panel.append(g); }); }
-{ const clip = $("clipHint"); clip.before($("finRow"), $("cuerpoRow")); $("finRow").querySelector("label").textContent = "Cuando termina"; }   // como en el TD Lab: todo lo del clip junto
+{ const clip = $("clipHint"); clip.before($("finRow"), $("cuerpoRow")); $("finRow").querySelector("label").textContent = "Cuando termina"; }   // como en el SIGNAL Lab: todo lo del clip junto
 let TAB = "material"; try { TAB = localStorage.getItem("lanzaLabTab") || TAB; } catch(e) {}
 { const h = location.hash.slice(1); if (document.querySelector(`#tabs [data-tab="${h}"]`)) TAB = h; }
 function verTab(t){ TAB = t; try { localStorage.setItem("lanzaLabTab", t); } catch(e) {}
@@ -1461,7 +1463,7 @@ function aplicarVel(rehacer = true){ if (!ORIG) return; const v = Math.max(.25, 
   const rs = a => { if (v === 1 || !a || a.length < 2) return a; const n = Math.max(1, Math.round(a.length/v)), o = new Array(n); for (let i=0; i<n; i++) o[i] = a[Math.min(a.length - 1, Math.floor(i*v))]; return o; };
   VID = rs(ORIG.vid); movs = ORIG.mv.map(m => m ? rs(m) : m); lens = ORIG.l.map((n, i) => movs[i] ? movs[i].length : v === 1 ? n : Math.max(1, Math.round(n/v))); DUO = ORIG.duo.map(rs);
   if (rehacer){ fotosId++; cache.clear(); CHAIN = null; armando = null; baseKey = ""; stopAudio(); } }
-// ─── en vivo, como en el TD Lab: la cámara entra como un video tal cual que no se termina, y el micrófono mueve los efectos
+// ─── en vivo, como en el SIGNAL Lab: la cámara entra como un video tal cual que no se termina, y el micrófono mueve los efectos
 const enMarco = (() => { try { return window.top !== window; } catch(e) { return true; } })();
 const avisoMarco = " Si estás usando el lab desde claude.ai, ahí el navegador no deja usar la cámara ni el micrófono: abrilo en lab.lanzapost.com (o en la app instalada).";
 const CAMA = {it: null, c: document.createElement("canvas"), n: 0};
@@ -1667,11 +1669,11 @@ $("limpia").onclick = () => { cv.requestFullscreen ? cv.requestFullscreen().catc
 let colaCorte = false;
 $("cancelExp").onclick = () => { cancelar = true; colaCorte = true; };
 document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const c = S.cola = S.cola || [], j = c.indexOf(b.dataset.f); if (j >= 0) c.splice(j, 1); else c.push(b.dataset.f); sync(); });
-$("expCola").onclick = async () => { const lista = [...document.querySelectorAll("#cola button")].map(b => b.dataset.f).filter(f => (S.cola || []).includes(f)); if (!lista.length || exportando) return;   // uno tras otro, como en el TD Lab
+$("expCola").onclick = async () => { const lista = [...document.querySelectorAll("#cola button")].map(b => b.dataset.f).filter(f => (S.cola || []).includes(f)); if (!lista.length || exportando) return;   // uno tras otro, como en el SIGNAL Lab
   const antes = S.fmt; colaCorte = false; $("expCola").disabled = true;
   try { for (const [q, f] of lista.entries()){ if (colaCorte) break; S.fmt = f; _lc = null; baseKey = ""; sync(); $("expCola").textContent = `Exportando ${q + 1} de ${lista.length}…`; await exportar(); } }
   finally { S.fmt = antes; _lc = null; baseKey = ""; sync(); $("expCola").disabled = false; $("expCola").textContent = "Exportar los marcados"; } };
-// proyecto: los ajustes, presets y el pincel en un archivo (el mismo formato de trabajo que el TD Lab)
+// proyecto: los ajustes, presets y el pincel en un archivo (el mismo formato de trabajo que el SIGNAL Lab)
 const pinPlano = () => PIN.capas.map(c => ({f0: c.f0, f1: c.f1, trazos: c.trazos.map(t => ({tipo: t.tipo, r: t.r, pts: t.pts, fa: t.fa, trk: t.trk ? {f0: t.trk.f0, dx: Array.from(t.trk.dx), dy: Array.from(t.trk.dy)} : null}))}));
 const pinDesdePlano = L => L.map(c => { const capa = {f0: c.f0, f1: c.f1, trazos: []}; capa.trazos = c.trazos.map(t => ({...t, capa})); return capa; });
 $("projSave").onclick = () => { const d = {lab: "LANZA ASCII Lab", version: 1, ajustes: S, presets: MIOS, pincel: pinPlano(), material: $("srcName").textContent};
