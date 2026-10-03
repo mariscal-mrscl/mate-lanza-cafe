@@ -180,6 +180,7 @@ details.log[open] summary::before{content:"− "}
         <div class="row two" id="capaModoRow"><label for="capaModo">Mezcla</label>
           <select id="capaModo"><option value="suma">Sumar (brilla donde se cruzan)</option><option value="pantalla">Pantalla (suma sin quemar)</option><option value="aclarar">Aclarar (lo más claro de las dos)</option><option value="multiplicar">Multiplicar (recorta con la de abajo)</option><option value="diferencia">Diferencia (invierte donde se cruzan)</option><option value="mezcla">Fundido (opacidad común)</option></select></div>
         <div class="row op"><label for="capaOp">Opacidad</label><input type="range" id="capaOp" min="0" max="1" step="0.01"><output id="capaOpO"></output><button class="rombo" id="kfOp" title="Keyframe de opacidad en este cuadro">◇</button></div>
+        <div class="row op"><label for="capaVel" title="Qué tan rápido corre el efecto de esta capa (0 = quieto, doble clic = normal)">Velocidad</label><input type="range" id="capaVel" min="0" max="3" step="0.05"><output id="capaVelO"></output></div>
         <label class="chk"><input type="checkbox" id="capaGolpe"> Al golpe: la opacidad sigue al grave (entra con cada pulso)</label>
       </div>
       <p class="hint" id="capaHint"></p>
@@ -458,7 +459,7 @@ const S = Object.assign({estilo:"feedback", sel:0, par:{}, pulso:1, color:"bn", 
   musica:"pulso", songOff:0, vol:.8, fmt:"916", ajuste:"llenar", esc:1, px:0, py:0, marca:true, velo:0, cierre:true, liviana:true, duoA:"#0d1b2a", duoB:"#f2e3c6", cola:["916"], hudTexto:"LANZA", songLen:20, efecto:1, kfEf:[], expVueltas:1, espejo:true, msForma:"off", msX:.5, msY:.5, msW:.8, msH:.8, msR:0, msGiro:0, msSuave:0, msInv:false, msMp4:true, msPts:[], msKfs:[], recSoltar:"queda", desfase:0, libre:false, arranque:"andando", pre:48, sjModo:"off", sjZona:"fondo", sjOtro:"foto", sj:1, sjU:.5, sjB:8, sjVer:false, sjPer:true, pinR:40, pinAlc:"adelante", pinSeg:true, ascii:"off", afs:12, apeso:700, aramp:" .,:;-=+i1tfLCG08@", agam:1, amix:.35});
 try { const s = JSON.parse(localStorage.getItem("lanzaTdLab1") || "null"); if (s) Object.assign(S, s); } catch(e) {}
 if (!S.capas){ S.capas = [{estilo: S.estilo, on: true, op: 1, modo: "suma", golpe: false}, {estilo: "nube", on: false, op: .6, modo: "suma", golpe: false}, {estilo: "particulas", on: false, op: .6, modo: "suma", golpe: false}]; }
-delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.op == null) c.op = 1; }); if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
+delete S.estilo; S.capas.forEach(c => { if (!STYLES[c.estilo]) c.estilo = "feedback"; if (c.op == null) c.op = 1; if (c.vel == null) c.vel = 1; }); if (!(S.sel >= 0 && S.sel < 3)) S.sel = 0;
 if (!FMT[S.fmt]) S.fmt = "916";
 const save = () => { try { localStorage.setItem("lanzaTdLab1", JSON.stringify(S)); } catch(e) {} };
 const completar = (a, def) => { while (a.length < def.length) a.push(def[a.length]); return a; };   // los proyectos viejos traen 3 valores por estilo
@@ -497,6 +498,7 @@ precision highp sampler2DArray;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uSrc, uPrev;
 uniform vec2 uRes;
+uniform float uVel;
 uniform float uT, uF, uLow, uHigh, uCut, uP1, uP2, uP3, uP4, uP5, uP6, uPulso, uSeed, uAnchoF;
 ${LIB}
 vec2 asp(){ return vec2(uRes.x/uRes.y, 1.); }
@@ -508,7 +510,7 @@ const FS = {
 copy: `void main(){ o = texture(uSrc, vUv); }`,
 feedback: `void main(){
   vec2 a = asp(), o0 = vec2(.3 + uP4*.4, .5), c = (vUv - o0)*a;
-  float z = 1. - (.004 + uP1*.045)*(1. + 2.5*PK), r = (uP2 - .5)*.09*(1. + PK);
+  float z = 1. - (.004 + uP1*.045)*(1. + 2.5*PK)*uVel, r = (uP2 - .5)*.09*(1. + PK)*uVel;
   c = mat2(cos(r), sin(r), -sin(r), cos(r))*c*z;
   vec2 q = c/a + o0;
   vec3 fb = (q.x < 0. || q.y < 0. || q.x > 1. || q.y > 1.) ? vec3(0.) : texture(uPrev, q).rgb*(.78 + uP3*.2);
@@ -518,7 +520,7 @@ feedback: `void main(){
 liquido: `void main(){
   vec2 a = asp(), p = vUv*a*(1.2 + uP2*5.); float t = uT*(.03 + uP4*.4)*(1. + 1.5*PK);
   vec2 fl = vec2(fbm(p + vec2(0., t)), fbm(p + vec2(3.1, 1.7) - t)) - .5;
-  vec2 q = vUv + fl*(.003 + uP1*.022)*(1. + 2.*PK) + vec2(0., -.004*uP5);
+  vec2 q = vUv + (fl*(.003 + uP1*.022)*(1. + 2.*PK) + vec2(0., -.004*uP5))*uVel;
   vec3 fb = texture(uPrev, q).rgb*(.86 + uP3*.13); fb = mix(fb, fb.gbr, uP6*.12);
   vec3 s = texture(uSrc, vUv).rgb; float k = smoothstep(.25, .7, lum(s));
   o = vec4(max(fb*(1. - .45*k), s*(.3 + .7*k)), 1.); }`,
@@ -633,8 +635,8 @@ void main(){
   if (uReset > .5){ vec4 n = nace(id); n.z = hash(id + 5.3); o = n; return; }
   if (s.z >= 1.){ o = nace(id); return; }
   vec2 a = asp(), v = curl(s.xy*a*(1.2 + uP2*5.) + vec2(uT*.07, -uT*.05));
-  vec2 q = s.xy + v*(.0006 + uP3*.004)*(1. + 2.*PK)/a;
-  o = vec4(q, (q.x < 0. || q.y < 0. || q.x > 1. || q.y > 1.) ? 1. : s.z + 1./uLifeF, s.w); }`,
+  vec2 q = s.xy + v*(.0006 + uP3*.004)*(1. + 2.*PK)*uVel/a;
+  o = vec4(q, (q.x < 0. || q.y < 0. || q.x > 1. || q.y > 1.) ? 1. : s.z + uVel/uLifeF, s.w); }`,
 fade: `uniform float uDecay;
 void main(){ o = vec4(texture(uPrev, vUv).rgb*uDecay, 1.); }`,
 ascii: `uniform sampler2D uImg, uAtlas; uniform float uCw, uCh, uN, uMix, uTinta, uGamA;
@@ -976,6 +978,10 @@ function buscar({sc, gw, gh}, N, rad, minimo){   // los N máximos, cada uno con
     const r0 = Math.max(rad, 0); for (let yy=Math.max(0, Math.min(y0, by - r0) - 1); yy<=Math.min(gh - 1, Math.max(y1, by + r0) + 1); yy++) for (let xx=Math.max(0, Math.min(x0, bx - r0) - 1); xx<=Math.min(gw - 1, Math.max(x1, bx + r0) + 1); xx++) usado[yy*gw + xx] = 1;
     det.push({x: (bx + .5)/gw, y: (by + .5)/gh, w: Math.max(2, x1 - x0 + 1)/gw, h: Math.max(2, y1 - y0 + 1)/gh, s: b}); }
   return det; }
+function pista(L, detectar, k){   // la velocidad de la capa: cada cuánto se vuelve a buscar y qué tan rápido se acercan las cajas
+  const v = L.vel ?? 1; if (v <= 0 && L.tracks) return L.tracks;
+  if (!L.det || (L.ovPaso = (L.ovPaso || 0) + v) >= 1){ L.det = detectar(); L.ovPaso = (L.ovPaso || 0) % 1; }
+  return seguir(L, L.det, 1 - Math.pow(1 - k, Math.max(v, .05))); }
 function seguir(L, det, k){   // cada detección toma el número de la zona vieja más cercana y se acerca de a poco (k: 0 = quieta, 1 = salta)
   const viejos = L.tracks || [], nuevos = [];
   det.forEach(dd => { let m = null, md = .12; viejos.forEach(v => { if (v.u) return; const dist = Math.hypot(v.x - dd.x, v.y - dd.y); if (dist < md){ md = dist; m = v; } });
@@ -991,7 +997,7 @@ function overlay(L, W, H, p, inC, st){
   gl.bindTexture(gl.TEXTURE_2D, L.ovT); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, L.ov);
   return L.ovT; }
 function dibTrack(x, L, W, H, p, k){
-  const T = seguir(L, buscar(mapaFuente(L, 72, p[1], false), Math.round(3 + p[0]*17), 2, .15), .5), det2 = p[2], lw = Math.max(1, 1.4*k);
+  const T = pista(L, () => buscar(mapaFuente(L, 72, p[1], false), Math.round(3 + p[0]*17), 2, .15), .5), det2 = p[2], lw = Math.max(1, 1.4*k);
   const col = p[5] < .5 ? "255,255,255" : "200,255,60";
   x.lineWidth = lw; x.strokeStyle = `rgba(${col},.85)`; x.fillStyle = `rgb(${col})`; x.font = `400 ${Math.round((8 + p[4]*10)*k)}px "JetBrains Mono", monospace`; x.textBaseline = "top";
   if (det2 > .2 && T.length > 1){ const orden = T.slice().sort((a, b) => a.id - b.id), nl = Math.round(det2*orden.length);
@@ -1006,7 +1012,7 @@ function dibTrack(x, L, W, H, p, k){
     x.save(); x.globalAlpha = .5; x.beginPath(); x.moveTo(tr.x*W, tr.y*H); x.lineTo(zx, zy); x.stroke(); x.restore(); x.fillText("zoom " + tr.id, zx + 4*k, zy + 4*k); } }
 const mosC = document.createElement("canvas"), mosX = mosC.getContext("2d");
 function dibRed(x, L, W, H, p, k){
-  const T = seguir(L, buscar(mapaFuente(L, 96, 0, true), Math.round(15 + p[0]*95), 1, .08), .15 + (1 - p[4])*.85), n = T.length;
+  const T = pista(L, () => buscar(mapaFuente(L, 96, 0, true), Math.round(15 + p[0]*95), 1, .08), .15 + (1 - p[4])*.85), n = T.length;
   if (!n) return; const lw = (.5 + p[5]*2.2)*k, pts = T.map(t => [t.x*W, t.y*H]);
   x.lineWidth = lw; x.strokeStyle = "rgba(255,255,255,.75)"; x.fillStyle = "#fff"; x.font = `400 ${Math.round(12*k)}px "JetBrains Mono", monospace`; x.textBaseline = "middle";
   const kv = 1 + Math.round(p[1]*3); x.beginPath();   // cada punto se une con sus vecinos más cercanos; tres nodos tiran líneas largas
@@ -1021,7 +1027,7 @@ function dibRed(x, L, W, H, p, k){
     if (hashN(t.id + 9) < p[3]*.35){ const bw = (30 + hashN(t.id + 5)*60)*k, bh = bw*.55, bx = px + (hashN(t.id + 11) - .5)*60*k, by = py + 12*k;   // recorte pixelado
       mosC.width = 6; mosC.height = 4; mosX.drawImage(srcC, bx, by, bw, bh, 0, 0, 6, 4); x.save(); x.imageSmoothingEnabled = false; x.drawImage(mosC, bx, by, bw, bh); x.restore(); x.strokeRect(bx, by, bw, bh); } }); }
 function dibHud(x, L, W, H, p, k){
-  const T = seguir(L, buscar(mapaFuente(L, 72, .5, false), Math.round(1 + p[2]*5), 3, .12), .35), lw = Math.max(1, 1.5*k);
+  const T = pista(L, () => buscar(mapaFuente(L, 72, .5, false), Math.round(1 + p[2]*5), 3, .12), .35), lw = Math.max(1, 1.5*k);
   x.lineWidth = lw; x.strokeStyle = "rgba(255,255,255,.9)"; x.fillStyle = "#fff"; x.textBaseline = "top";
   const marca = (cx, cy) => { const q = 4*k; [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]].forEach(([a, b]) => x.fillRect(cx + a*q*1.3 - q/2, cy + b*q*1.3 - q/2, q, q)); };   // marca de 5 cuadraditos
   if (p[4] > .1){ x.save(); x.setLineDash([3*k, 5*k]); x.globalAlpha = .25 + p[4]*.5; x.beginPath();   // retícula punteada
@@ -1034,15 +1040,16 @@ function dibHud(x, L, W, H, p, k){
       const tx = t.x > .5 ? bx - 10*k - x.measureText(w).width : bx + s + 10*k; x.fillText(w, tx, by); if (i % 2 === 0) x.fillText(w2, tx, by + 18*k); } });
   if (p[3] > .5 && S.hudTexto){ x.font = `500 ${Math.round(78*k)}px "JetBrains Mono", monospace`; x.textAlign = "center"; x.textBaseline = "alphabetic"; x.fillText(S.hudTexto.toUpperCase(), W/2, H*.9); x.textAlign = "left"; } }
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
-  const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), t = base.uT;
-  const U = {...base, uP1: p[0], uP2: p[1], uP3: p[2], uP4: p[3], uP5: p[4], uP6: p[5]};
+  const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), vel = S.capas[k].vel ?? 1, t = base.uT*vel;
+  L.vel = vel; L.paso = (L.paso || 0) + vel; const avanza = L.paso >= 1; if (avanza) L.paso -= Math.floor(L.paso);   // con velocidad < 1 lo que va cuadro a cuadro avanza solo algunos cuadros
+  const U = {...base, uT: t, uF: base.uF*vel, uVel: vel, uP1: p[0], uP2: p[1], uP3: p[2], uP4: p[3], uP5: p[4], uP6: p[5]};
   const prev = L.fx[L.i], dst = L.fx[1 - L.i]; L.i = 1 - L.i;
   if (st === "slitscan" || st === "eco"){   // guarda la fuente en el anillo de cuadros pasados
-    const hist = histDe(L);
+    const hist = histDe(L); if (avanza){
     gl.bindFramebuffer(gl.FRAMEBUFFER, L.histF); gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, hist, 0, L.head);
-    gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad();
+    gl.viewport(0, 0, r.hw, r.hh); use(P.copy, {}, {uSrc: r.src}); quad(); }
     bindT(dst); use(P[st], {...U, uHead: L.head, uFill: Math.max(1, L.fill + 1)}, {uSrc: r.src, uHist: hist}); quad();
-    L.head = (L.head + 1) % HN; L.fill = Math.min(HN, L.fill + 1); }
+    if (avanza){ L.head = (L.head + 1) % HN; L.fill = Math.min(HN, L.fill + 1); } }
   else if (st === "shake"){   // el temblor se calcula acá (igual en la vista previa y en el MP4): ruido suave o nervioso + golpe del grave
     const fr = .4 + p[1]*5, a0 = p[0]*(1 + 1.8*S.pulso*ft.low_e), tt = t*fr, n = (k1, k2) => Math.sin(tt*k1 + k2) + .5*Math.sin(tt*k1*2.13 + k2*1.7) + .25*Math.sin(tt*k1*4.37 + k2*.3);
     bindT(dst); use(P.shake, {...U, uSh: [n(1.1, 0)*.022*a0, n(.93, 2.1)*.03*a0], uRot: n(.71, 4.2)*.035*a0*p[4]*2, uZoom: 1.02 + p[3]*.13 + .05*a0 + n(.53, 1.3)*.02*a0}, {uSrc: r.src, uPrev: prev.t}); quad(); }
@@ -1065,7 +1072,7 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
   else if (st === "particulas" && FLT){
     const pt = ptBuffers(L, pb), side = pt[0].w, a = pt[L.ptI], b = pt[1 - L.ptI]; L.ptI = 1 - L.ptI;
     bindT(b); use(P.pSim, {...U, uReset: L.ptReset ? 1 : 0, uLifeF: 20 + p[3]*100}, {uSrc: r.src, uState: a.t}); quad(); L.ptReset = false;
-    bindT(dst); use(P.fade, {uDecay: .8 + p[4]*.19}, {uPrev: prev.t}); quad();
+    bindT(dst); use(P.fade, {uDecay: Math.pow(.8 + p[4]*.19, vel)}, {uPrev: prev.t}); quad();
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     use(P.g_part, {uSide: side, uSize: 2.2*W/1080*(.4 + p[5]*1.5)}, {uSrc: r.src, uState: b.t}); gl.drawArrays(gl.POINTS, 0, side*side);
     gl.disable(gl.BLEND); }
@@ -1537,7 +1544,7 @@ function sync(){
   num.forEach(k => { $(k).value = S[k]; $(k + "O").textContent = fmtOut(k, S[k]); });
   document.querySelectorAll("#capasSeg button").forEach(b => { const k = +b.dataset.k, c = S.capas[k];
     b.innerHTML = `Capa ${k + 1}<small>${c.on ? STYLES[c.estilo].n : "apagada"}</small>`; b.setAttribute("aria-pressed", k === S.sel); });
-  $("capaModoRow").hidden = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaGolpe").checked = !!cap().golpe;
+  $("capaModoRow").hidden = S.sel === 0; $("capaOn").checked = cap().on; $("capaModo").value = cap().modo; $("capaOp").value = cap().op; $("capaOpO").textContent = Math.round(cap().op*100) + "%"; $("capaVel").value = cap().vel ?? 1; $("capaVelO").textContent = String(+(+(cap().vel ?? 1)).toFixed(2)) + "×"; $("capaGolpe").checked = !!cap().golpe;
   const nOn = S.capas.filter(c => c.on).length;
   $("capaHint").textContent = S.sel === 0 ? `Capa 1${cap().on ? "" : " apagada"}: se funde sobre la imagen limpia con su opacidad (0 % = sin efecto). Las capas 2 y 3 se mezclan encima y funcionan aunque la 1 esté apagada.${nOn ? ` Hay ${nOn} capa${nOn === 1 ? "" : "s"} activa${nOn === 1 ? "" : "s"}.` : " No hay capas activas: se ve la imagen limpia."} Cada capa guarda sus propios parámetros.`
     : `Capa ${S.sel + 1}${cap().on ? "" : " (apagada: activala para que se vea)"}: se mezcla sobre lo de abajo. Con varias capas sumadas, bajá Exposición o subí Recuperar altas si quema.`;
@@ -1632,6 +1639,8 @@ document.querySelectorAll("#cola button").forEach(b => b.onclick = () => { const
 $("styReset").onclick = () => { cap().pars[estSel()] = STYLES[estSel()].v.slice(); S.par[estSel()] = STYLES[estSel()].v.slice(); reiniciar(); sync(); };
 $("capaOn").onchange = e => { cap().on = e.target.checked; sync(); };
 $("capaModo").onchange = e => { cap().modo = e.target.value; sync(); };
+$("capaVel").oninput = e => { cap().vel = +e.target.value; sync(); };
+$("capaVel").ondblclick = () => { cap().vel = 1; sync(); };
 $("capaOp").oninput = e => { const v = +e.target.value; if (recMover("op", v)) return;
   if (cap().kfOp && cap().kfOp.length) ponerEn(cap().kfOp, fi, v); else cap().op = v; sync(); };
 $("efecto").oninput = e => { const v = +e.target.value; if (recMover("ef", v)) return;
