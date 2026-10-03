@@ -132,6 +132,12 @@ details.log[open] summary::before{content:"− "}
         <button id="btnFile">Cargar videos o fotos</button>
         <button id="btnAdd">Sumar un video</button>
         <button id="btnSample">Usar muestra</button>
+        <button id="btnCam">Cámara en vivo</button>
+      </div>
+      <div id="camBox" hidden style="display:grid;gap:10px">
+        <div class="row two"><label for="camSel">Cámara</label><select id="camSel"></select></div>
+        <label class="chk"><input type="checkbox" id="espejo"> Espejo (como un selfie)</label>
+        <div class="seg"><button id="camStop">Apagar la cámara</button></div>
       </div>
       <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
       <input type="file" id="fileAdd" accept="video/*" multiple hidden>
@@ -258,6 +264,12 @@ details.log[open] summary::before{content:"− "}
       <h2>Música</h2>
       <div class="seg" id="musica">
         <button data-m="video">Audio del video</button><button data-m="pulso">Pulso interno</button><button data-m="cancion">Canción</button><button data-m="nada">Sin música</button>
+      </div>
+      <div class="seg"><button id="micBtn" aria-pressed="false" title="Los efectos reaccionan a lo que escucha el micrófono">Micrófono en vivo</button></div>
+      <div id="micBox" hidden style="display:grid;gap:8px">
+        <div class="row"><label for="micSens">Sensibilidad</label><input type="range" id="micSens" min="0.3" max="3" step="0.05"><output id="micSensO"></output></div>
+        <canvas id="micNivel" height="20" style="width:100%;height:20px;display:block;border:1px solid var(--line);border-radius:4px;background:#000" aria-label="Nivel del micrófono: grave y agudo"></canvas>
+        <p class="hint" id="micHint"></p>
       </div>
       <p class="hint" id="musHint">Pulso interno: la música minimal aprobada (click en cada corte, pulso, campana, silencio e impacto en el logo), armada sobre los cortes.</p>
       <div id="songBox" class="grp" style="padding:0;border:0">
@@ -509,6 +521,7 @@ function posFin(pos){ const T = VT(); if (pos < T) return pos;                  
   if (S.fin === "vuelta"){ const per = Math.max(1, 2*T - 2), c = pos % per; return c < T ? c : per - c; }
   return S.fin === "repetir" ? pos % T : T - 1; }
 function srcAt(seg, j){
+  if (CAMA.it && fotos[0] === CAMA.c) return {img: CAMA.c, key: "cam" + CAMA.n};   // cámara en vivo: siempre el último cuadro
   if (seg.cont && duo()){ const q = seg.glob + j; return {img: duoFrame(q), key: `d${q}|${S.sep}|${S.duoInv ? 1 : 0}`}; }
   if (seg.cont){ const q = Math.min(VID.length - 1, seg.glob + j); return {img: VID[q], key: `v${q}`}; }
   if (seg.glob !== undefined){ const {i, q} = ubicar(posFin(seg.glob + j)); return movs[i] ? {img: movs[i][q], key: `m${i}_${q}r0`} : {img: fotos[i], key: `f${i}r0`}; }
@@ -775,7 +788,8 @@ function vivoEn(fi){ const v = S.vivo; if (!v || !v.length) return null; let o =
   for (const e of v){ if (e.f > fi) break; if (e.k === "render" || e.k === "efecto"){ o = o || {}; o[e.k] = e.v; } } return o; }
 function frameRaw(fi){
   const f = F(); if (cv.width !== f.W || cv.height !== f.H){ cv.width = f.W; cv.height = f.H; }
-  const r = FEAT[Math.min(fi, FEAT.length-1)] || Z, {gInfo, head, real} = asciiLayer(fi, r);
+  if (CAMA.it) camCuadro();
+  const r = (MIC.on && !exportando ? micFeat() : FEAT[Math.min(fi, FEAT.length-1)]) || Z, {gInfo, head, real} = asciiLayer(fi, r);
   const ef = S.inv && S.render === "ascii" ? "ascii" : S.efecto;
   const reset = lastFx !== fi - 1, fade = fi >= TL.body + TL.land ? fi - TL.body - TL.land : -1; lastFx = fi;
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
@@ -1441,11 +1455,71 @@ function aplicarVel(rehacer = true){ if (!ORIG) return; const v = Math.max(.25, 
   const rs = a => { if (v === 1 || !a || a.length < 2) return a; const n = Math.max(1, Math.round(a.length/v)), o = new Array(n); for (let i=0; i<n; i++) o[i] = a[Math.min(a.length - 1, Math.floor(i*v))]; return o; };
   VID = rs(ORIG.vid); movs = ORIG.mv.map(m => m ? rs(m) : m); lens = ORIG.l.map((n, i) => movs[i] ? movs[i].length : v === 1 ? n : Math.max(1, Math.round(n/v))); DUO = ORIG.duo.map(rs);
   if (rehacer){ fotosId++; cache.clear(); CHAIN = null; armando = null; baseKey = ""; stopAudio(); } }
-async function cargarMuestra(){
+// ─── en vivo, como en el TD Lab: la cámara entra como un video tal cual que no se termina, y el micrófono mueve los efectos
+const enMarco = (() => { try { return window.top !== window; } catch(e) { return true; } })();
+const avisoMarco = " Si estás usando el lab desde claude.ai, ahí el navegador no deja usar la cámara ni el micrófono: abrilo en lab.lanzapost.com (o en la app instalada).";
+const CAMA = {it: null, c: document.createElement("canvas"), n: 0};
+function camCuadro(){ const it = CAMA.it, v = it.el, now = performance.now(); if (v.readyState < 2 || (now - (CAMA.t || 0) < 1000/FPS - 2 && !exportando)) return; CAMA.t = now;   // a 24 fps, como la pieza
+  const c = CAMA.c, x = c.getContext("2d");
+  if (S.espejo){ x.save(); x.translate(c.width, 0); x.scale(-1, 1); x.drawImage(v, 0, 0, c.width, c.height); x.restore(); } else x.drawImage(v, 0, 0, c.width, c.height);
+  CAMA.n++; PLUZ.delete(c); PMOV.delete(c); }
+function camSoltar(){ if (!CAMA.it) return; try { CAMA.it.st.getTracks().forEach(t => t.stop()); } catch(e) {} CAMA.it = null; $("camBox").hidden = true; }
+async function camAbrir(deviceId){
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ hint("Este navegador no da acceso a la cámara acá." + (enMarco ? avisoMarco : ""), true); return; }
+  hint("Abriendo la cámara…"); let st;
+  try { st = await navigator.mediaDevices.getUserMedia({video: {deviceId: deviceId ? {exact: deviceId} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 30}}, audio: false}); }
+  catch(e){ hint((e && e.name === "NotAllowedError" ? "No hay permiso para la cámara: habilitalo en el candado de la barra de direcciones y volvé a tocar el botón." : "No pude abrir la cámara (" + (e && e.name || e) + ").") + (enMarco ? avisoMarco : ""), true); return; }
+  const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.srcObject = st; await v.play().catch(() => {});
+  await new Promise(r => { if (v.videoWidth) r(); else { v.onloadedmetadata = r; setTimeout(r, 3000); } });
+  camSoltar(); const tr = st.getVideoTracks()[0], w = v.videoWidth || 1280, h = v.videoHeight || 720, k = Math.min(1, 960/Math.max(w, h));
+  CAMA.it = {el: v, st, w, h, name: tr ? tr.label || "Cámara" : "Cámara"}; CAMA.c.width = Math.round(w*k); CAMA.c.height = Math.round(h*k); camCuadro();
+  const N = Math.round((S.cuerpo > 0 ? S.cuerpo : 15)*FPS);   // la pieza dura lo elegido en Duración (o 15 s) y vuelve a empezar; la imagen siempre es la de ahora
+  DUO = []; DAUD = null; CARGA = []; S.tal = true; if (S.musica === "video") S.musica = "pulso";
+  nuevasFotos([CAMA.c], [N], [0], ["cam"], ["cámara"], "cámara · " + CAMA.it.name, [null], new Array(N).fill(CAMA.c), null, 1);
+  $("camBox").hidden = false; $("espejo").checked = !!S.espejo;
+  try { const ds = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput"), sel = $("camSel"), act = tr && tr.getSettings().deviceId;
+    sel.innerHTML = ds.map((d, i) => `<option value="${d.deviceId}">${(d.label || "Cámara " + (i + 1)).replace(/[<&]/g, "")}</option>`).join(""); if (act) sel.value = act; } catch(e) {}
+  hint(`Cámara en vivo: ${w}×${h}. El ASCII y los efectos corren sobre la imagen de ahora; la grilla de tempo o los golpes marcan los cortes. Para guardar, usá «Grabar en tiempo real» en Salida. El sujeto sigue a la cámara por luz o por movimiento.`); }
+$("btnCam").onclick = () => camAbrir(); $("camSel").onchange = e => camAbrir(e.target.value);
+$("camStop").onclick = () => { camSoltar(); cargarMuestra(); };
+$("espejo").onchange = e => { S.espejo = e.target.checked; save(); };
+// micrófono: tres bandas (grave, medio, agudo) con su nivel adaptado a lo que viene sonando, en vez del audio de la pieza
+const MIC = {on: false, st: null, ctx: null, an: [], buf: null, pk: [.01, .008, .005], e: [0, 0, 0], prevH: 0, t: 0, v: null, err: ""};
+const MIC_TXT = "Los efectos siguen al micrófono en vez de la música: el grave quema y revela, el medio da el halo, el agudo corta la estela. Funciona en la vista previa y la pantalla completa; el MP4 usa la música elegida. Subí Fuerza para que reaccione más.";
+function micUI(){ $("micBtn").setAttribute("aria-pressed", MIC.on); $("micBtn").textContent = MIC.on ? "Micrófono en vivo · encendido" : "Micrófono en vivo";
+  $("micBox").hidden = !MIC.on && !MIC.err; $("micSens").parentElement.hidden = $("micNivel").hidden = !MIC.on;
+  $("micSens").value = S.micSens ?? 1; $("micSensO").textContent = (+(S.micSens ?? 1)).toFixed(2) + "×";
+  $("micHint").textContent = MIC.err || MIC_TXT; $("micHint").className = "hint" + (MIC.err ? " warn" : ""); }
+function micError(t){ MIC.on = false; MIC.err = t; micUI(); }
+async function micAbrir(){
+  MIC.err = ""; $("micBtn").textContent = "Abriendo el micrófono…";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ micError("Este navegador no da acceso al micrófono acá." + (enMarco ? avisoMarco : " Tiene que estar en https o en localhost.")); return; }
+  try { const st = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(), src = ctx.createMediaStreamSource(st);
+    MIC.an = [["lowpass", 150], ["bandpass", 1200, .6], ["highpass", 3000]].map(([type, fq, q]) => { let n = src; for (let k=0; k<2; k++){ const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = fq; if (q) b.Q.value = q; n.connect(b); n = b; }
+      const a = ctx.createAnalyser(); a.fftSize = 1024; n.connect(a); return a; });   // no va a los parlantes: no se acopla
+    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+    Object.assign(MIC, {on: true, st, ctx, buf: new Float32Array(1024), pk: [.01, .008, .005], e: [0, 0, 0], err: ""}); }
+  catch(e){ micError((e && e.name === "NotAllowedError" ? "No hay permiso para el micrófono: habilitalo en el candado de la barra de direcciones y volvé a tocar el botón." : e && e.name === "NotFoundError" ? "No encontré ningún micrófono conectado." : "No pude abrir el micrófono (" + (e && (e.name || e.message) || e) + ").") + (enMarco ? avisoMarco : "")); return; }
+  micUI(); }
+function micCerrar(){ try { MIC.st.getTracks().forEach(t => t.stop()); MIC.ctx.close(); } catch(e) {} Object.assign(MIC, {on: false, st: null, ctx: null, an: [], err: ""}); micUI(); }
+function micFeat(){
+  const now = performance.now(); if (MIC.v && now - MIC.t < 12) return MIC.v; MIC.t = now; const v = [0, 0, 0];
+  MIC.an.forEach((a, i) => { a.getFloatTimeDomainData(MIC.buf); let s = 0; for (let j=0; j<MIC.buf.length; j++) s += MIC.buf[j]*MIC.buf[j];
+    const rms = Math.sqrt(s/MIC.buf.length); MIC.pk[i] = Math.max(rms, MIC.pk[i]*.997, .002);
+    v[i] = Math.min(1, Math.sqrt(rms/MIC.pk[i])*.85*(S.micSens ?? 1)); MIC.e[i] = Math.max(v[i], MIC.e[i]*[.8, .88, .6][i]); });
+  const hit = v[2] - MIC.prevH > .15; MIC.prevH = v[2];
+  MIC.v = {low: v[0], mid: v[1], high: v[2], low_e: MIC.e[0], mid_e: MIC.e[1], high_e: MIC.e[2], hit};
+  const c = $("micNivel"); if (c.offsetParent){ const w = c.clientWidth; if (c.width !== w) c.width = w; const x = c.getContext("2d");
+    x.fillStyle = "#000"; x.fillRect(0, 0, w, 20); x.fillStyle = "#fff"; x.fillRect(0, 2, w*MIC.e[0], 7); x.fillStyle = "#c8ff3c"; x.fillRect(0, 11, w*MIC.e[2], 7); }
+  return MIC.v; }
+$("micBtn").onclick = () => MIC.on ? micCerrar() : micAbrir();
+$("micSens").oninput = e => { S.micSens = +e.target.value; micUI(); save(); };
+async function cargarMuestra(){ camSoltar();
   const f = await Promise.all(MUESTRAS.map(u => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = u; })));
   DUO = []; DAUD = null; CARGA = []; nuevasFotos(f, f.map(() => 4), f.map(() => 0), f.map((_, k) => "muestra#" + k), ["muestra"], `muestra · ${f.length} fotos`);
 }
-async function cargarArchivos(files, sumar = false){
+async function cargarArchivos(files, sumar = false){ if (!sumar) camSoltar();
   files = [...files]; const vids = files.filter(f => f.type.startsWith("video/")), imgs = files.filter(f => f.type.startsWith("image/")).sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric:true}));
   const aud = files.find(f => f.type.startsWith("audio/")); if (aud) cargarCancion(aud);
   if (!vids.length && !imgs.length){ if (!aud) hint("Ese archivo no es un video, una imagen ni un audio.", true); return; }

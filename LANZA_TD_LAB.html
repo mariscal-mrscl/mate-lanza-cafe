@@ -161,6 +161,7 @@ details.log[open] summary::before{content:"− "}
       <div class="row" id="vueltasRow"><label for="vueltas">Vueltas</label><input type="range" id="vueltas" min="1" max="8" step="1"><output id="vueltasO"></output></div>
       <div class="row" id="segsRow"><label for="segs">Segundos</label><input type="range" id="segs" min="2" max="60" step="0.5"><output id="segsO"></output></div>
       <p class="hint" id="clipHint"></p>
+      <p class="hint" id="memInfo"></p>
     </div>
 
     <div class="grp">
@@ -946,16 +947,25 @@ async function calentar(f, exacto = false){   // vacía la memoria y, si arranca
   finally { lastF = f - 1; CAL = false; } }
 // micrófono en vivo: dos bandas (grave hasta 150 Hz, agudo desde 3 kHz) con su nivel adaptado a lo que viene sonando
 const MIC = {on: false, st: null, ctx: null, an: [], buf: null, pk: [.01, .005], e: [0, 0], t: 0, v: Z};
+const enMarco = (() => { try { return window.top !== window; } catch(e) { return true; } })();   // adentro de otra página (claude.ai): cámara y micrófono suelen estar bloqueados
+const avisoMarco = " Si estás usando el lab desde claude.ai, ahí el navegador no deja usar la cámara ni el micrófono: abrilo en lab.lanzapost.com (o en la app instalada).";
+function micError(t){ MIC.on = false; MIC.err = t; micUI(); }
 async function micAbrir(){
+  MIC.err = ""; $("micBtn").textContent = "Abriendo el micrófono…";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ micError("Este navegador no da acceso al micrófono acá." + (enMarco ? avisoMarco : " Tiene que estar en https o en localhost.")); return; }
   try { const st = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: false, noiseSuppression: false, autoGainControl: false}});
     const ctx = new (window.AudioContext || window.webkitAudioContext)(), src = ctx.createMediaStreamSource(st);
     MIC.an = [["lowpass", 150], ["highpass", 3000]].map(([type, fq]) => { let n = src; for (let k=0; k<2; k++){ const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = fq; n.connect(b); n = b; }
       const a = ctx.createAnalyser(); a.fftSize = 1024; n.connect(a); return a; });   // no va a los parlantes: no se acopla
-    Object.assign(MIC, {on: true, st, ctx, buf: new Float32Array(1024), pk: [.01, .005], e: [0, 0]}); $("micHint").className = "hint"; }
-  catch(e){ MIC.on = false; $("micHint").textContent = "No pude abrir el micrófono (" + (e.message || e.name || e) + "). Dale permiso al navegador para este sitio; tiene que estar en https o en localhost."; $("micHint").className = "hint warn"; }
+    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+    Object.assign(MIC, {on: true, st, ctx, buf: new Float32Array(1024), pk: [.01, .005], e: [0, 0], err: ""}); }
+  catch(e){ micError((e && e.name === "NotAllowedError" ? "No hay permiso para el micrófono: habilitalo en el candado de la barra de direcciones y volvé a tocar el botón." : e && e.name === "NotFoundError" ? "No encontré ningún micrófono conectado." : "No pude abrir el micrófono (" + (e && (e.name || e.message) || e) + ").") + (enMarco ? avisoMarco : "")); return; }
   micUI(); }
 function micCerrar(){ try { MIC.st.getTracks().forEach(t => t.stop()); MIC.ctx.close(); } catch(e) {} Object.assign(MIC, {on: false, st: null, ctx: null, an: []}); micUI(); }
-function micUI(){ $("micBtn").setAttribute("aria-pressed", MIC.on); $("micBox").hidden = !MIC.on; $("micSens").value = S.micSens ?? 1; $("micSensO").textContent = (+(S.micSens ?? 1)).toFixed(2) + "×"; }
+const MIC_TXT = "El efecto sigue al micrófono (grave arriba, agudo abajo) en vez de la música: el pulso, «Al golpe» y la modulación Grave/Agudo de cada parámetro. Funciona en la vista previa, la pantalla completa y la señal limpia; el MP4 usa la música elegida. Para que reaccione más, subí Pulso.";
+function micUI(){ $("micBtn").setAttribute("aria-pressed", MIC.on); $("micBtn").textContent = MIC.on ? "Micrófono en vivo · encendido" : "Micrófono en vivo";
+  $("micBox").hidden = !MIC.on && !MIC.err; $("micSens").parentElement.hidden = $("micNivel").hidden = !MIC.on;
+  $("micHint").textContent = MIC.err || MIC_TXT; $("micHint").className = "hint" + (MIC.err ? " warn" : ""); $("micSens").value = S.micSens ?? 1; $("micSensO").textContent = (+(S.micSens ?? 1)).toFixed(2) + "×"; }
 function micFeat(){
   const now = performance.now(); if (now - MIC.t < 12) return MIC.v; MIC.t = now; const v = [0, 0];
   MIC.an.forEach((a, i) => { a.getFloatTimeDomainData(MIC.buf); let s = 0; for (let j=0; j<MIC.buf.length; j++) s += MIC.buf[j]*MIC.buf[j];
@@ -971,11 +981,12 @@ function feat(f){ if (MIC.on && !exportando) return micFeat();
 function claveFuente(f){   // qué hay en la fuente: si no cambió, no se vuelve a dibujar ni a subir
   const base = [fuenteId, S.fmt, S.ajuste, S.esc, S.px, S.py, R && R.W].join("|");
   if (f >= TL.body) return base + "|logo|" + logoImg.complete; const seg = segAt(f); if (!seg || !seg.it) return base + "|nada";
-  const it = seg.it; if (it.live) return base + "|vivo|" + (++CAM.n) + "|" + S.espejo; return base + "|" + items.indexOf(it) + (it.vid ? "|" + it.el.currentTime.toFixed(3) + "|" + it.el.readyState : ""); }
+  const it = seg.it; if (it.live) return base + "|vivo|" + (++CAM.n) + "|" + S.espejo; const mc = memCuadro(seg, f); if (mc) return base + "|mem|" + items.indexOf(it) + "|" + mc.j; return base + "|" + items.indexOf(it) + (it.vid ? "|" + it.el.currentTime.toFixed(3) + "|" + it.el.readyState : ""); }
 function fuente(f){
   const {W, H} = F(); if (R) R.srcKey = ""; srcX.fillStyle = "#000"; srcX.fillRect(0, 0, W, H);
   if (f >= TL.body){ srcX.drawImage(logoCanvas(), 0, 0); return; }
   const seg = segAt(f); if (!seg || !seg.it) return; const it = seg.it, el = it.el;
+  const mc = it.vid ? memCuadro(seg, f) : null; if (mc){ srcX.imageSmoothingQuality = "high"; srcX.drawImage(mc.b, ...ubicar(it.w, it.h)); return; }
   if ((it.vid || it.live) && el.readyState < 2) return;
   srcX.imageSmoothingQuality = "high";
   if (it.live && S.espejo){ srcX.save(); srcX.translate(W, 0); srcX.scale(-1, 1); srcX.drawImage(el, ...ubicar(it.w, it.h)); srcX.restore(); }
@@ -1390,10 +1401,46 @@ $("pinClear").onclick = () => dosToques($("pinClear"), "¿Seguro? Tocá de nuevo
 function seekTo(v, t){ return new Promise(r => { if (Math.abs(v.currentTime - t) < .25/FPS && v.readyState >= 2 && !v.seeking) return r();
   const to = setTimeout(r, 2500); v.onseeked = () => { clearTimeout(to); v.onseeked = null; r(); }; v.currentTime = t; }); }
 async function prepExacto(f){ if (f >= TL.body) return; const seg = segAt(f); if (seg && seg.it && seg.it.vid){ seg.it.el.pause(); await seekTo(seg.it.el, vtDe(seg, f)); } }
+// ida y vuelta en vivo: buscar el video hacia atrás cuadro a cuadro se traba (cada búsqueda decodifica desde el último cuadro clave),
+// así que el tramo del clip se guarda en memoria en segundo plano y la vuelta sale de ahí. El MP4 sigue buscando cada cuadro exacto.
+const MEM_MAX = 288;   // hasta 12 s de clip a 24 fps; más largo, guarda uno de cada dos (o tres)
+function memKey(it){ const d = it.el.duration || 1, [a, L] = tramoClip(d); return [it.el.src, a.toFixed(3), L.toFixed(3)].join("|"); }
+function memSoltar(it){ if (it.mem){ it.mem.corte = true; it.mem.fr.forEach(b => b && b.close && b.close()); } it.mem = null; }
+async function memPreparar(it){
+  const key = memKey(it); if (it.mem && it.mem.key === key) return; memSoltar(it);
+  const d = it.el.duration || 1, [a, L] = tramoClip(d), i0 = Math.floor(a*FPS), n = Math.max(1, Math.round(L*FPS)), paso = Math.ceil(n/MEM_MAX);
+  const lado = Math.min(1, 960/Math.max(it.w, it.h)), w = Math.round(it.w*lado), h = Math.round(it.h*lado);
+  const m = it.mem = {key, i0, n, paso, fr: [], listos: 0, corte: false, lista: false}, nn = Math.ceil(n/paso);
+  const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = it.el.src;
+  const guardar = async j => { if (j < 0 || j >= nn || m.fr[j] || m.corte) return; m.fr[j] = 1; const b = await createImageBitmap(v, {resizeWidth: w, resizeHeight: h, resizeQuality: "medium"}); if (m.corte){ b.close(); return; } m.fr[j] = b; m.listos++; if (m.listos % 12 === 0 && it === vid0()) memAviso(); };
+  const ir = t => new Promise(r => { const to = setTimeout(r, 2000); v.onseeked = () => { clearTimeout(to); r(); }; v.currentTime = t; });
+  try { await new Promise((ok, ko) => { v.onloadeddata = ok; v.onerror = ko; setTimeout(ko, 15000); });
+    // pasadas hacia adelante guardando cada cuadro que se muestra (lineal: tarda lo que dura el clip); si la compu no llega a decodificar
+    // todo, otra pasada más lenta junta los que faltaron, y lo poco que quede se busca de a uno
+    for (const rate of v.requestVideoFrameCallback ? [1, .5, .25] : []){ if (m.listos >= nn*.97 || m.corte) break;
+      await ir(a); v.playbackRate = rate; await new Promise(fin => { const tope = setTimeout(fin, (L/rate + 4)*1000);
+        const cb = (now, md) => { if (m.corte){ clearTimeout(tope); fin(); return; } const t = md.mediaTime; guardar(Math.round((t*FPS - .5 - i0)/paso));
+          if (t >= a + L - .5/FPS || v.ended){ clearTimeout(tope); fin(); } else v.requestVideoFrameCallback(cb); };
+        v.requestVideoFrameCallback(cb); v.play().catch(fin); });
+      v.pause(); }
+    m.enPasada = m.listos;
+    for (let j=0; j<nn; j++){ if (m.corte) return; if (!m.fr[j] || m.fr[j] === 1){ m.fr[j] = 0; await ir(Math.min(d - .5/FPS, (i0 + j*paso + .5)/FPS)); await guardar(j); } }   // lo que faltó, buscándolo
+    m.lista = true; memAviso(); }
+  catch(e){ if (it.mem === m) it.mem = null; }
+  finally { v.removeAttribute("src"); v.load(); } }
+function memAviso(){ const it = vid0(), m = it && it.mem; if (!m) return; const el = $("memInfo"); if (!el) return;
+  el.textContent = m.lista ? "Ida y vuelta lista: la vuelta sale de la memoria, fluida." : `Preparando la vuelta… ${Math.round(100*m.listos*m.paso/m.n)}%`; }
+function memCuadro(seg, f){   // el cuadro guardado para la vuelta (null: no hay o va hacia adelante)
+  const it = seg.it, m = it && it.mem; if (!m || exportando || S.loopModo !== "idavuelta" || m.key !== memKey(it)) return null;
+  if (dirClip(it.el.duration || 1, corrido(seg, f)) > 0) return null;
+  const k = Math.round(vtDe(seg, f)*FPS - .5) - m.i0, j = Math.max(0, Math.min(Math.ceil(m.n/m.paso) - 1, Math.round(k/m.paso)));
+  for (let q=0; q<4; q++) for (const jj of [j - q, j + q]) if (m.fr[jj] && m.fr[jj].close) return {b: m.fr[jj], j: jj};
+  return null; }
 function prepVivo(f, corriendo){
   const seg = f < TL.body ? segAt(f) : null, act = seg && seg.it && seg.it.vid ? seg.it.el : null;
   items.forEach(it => { if (it.vid && it.el !== act && !it.el.paused) it.el.pause(); });
   if (!act) return; const t = vtDe(seg, f), dir = dirClip(act.duration || 1, corrido(seg, f));
+  if (dir < 0 && memCuadro(seg, f)){ if (!act.paused) act.pause(); return; }   // la vuelta sale de la memoria
   if (corriendo && dir > 0){ if (act.playbackRate !== S.vel) act.playbackRate = S.vel;   // hacia adelante corre solo; hacia atrás o congelado se busca cuadro a cuadro
     if (act.paused) { act.currentTime = t; act.play().catch(() => {}); } else if (Math.abs(act.currentTime - t) > .25*Math.max(1, S.vel)) act.currentTime = t; }
   else { if (!act.paused) act.pause(); if (!act.seeking && Math.abs(act.currentTime - t) > .5/FPS) act.currentTime = t; } }
@@ -1644,6 +1691,8 @@ function sync(){
   $("durInfo").textContent = (TL.total/FPS).toFixed(1) + " s"; const v0 = vid0();
   $("clipHint").textContent = v0 ? `El clip usa ${tramoClip(v0.el.duration || 1)[1].toFixed(2)} s del video; a ×${(+S.vel).toFixed(2)} cada pasada dura ${largoClip(v0).toFixed(2)} s. La pieza dura ${(TL.body/FPS).toFixed(2)} s${S.cierre ? " más el cierre" : ""}: ${(TL.body/FPS/largoClip(v0)).toFixed(1).replace(/\.0$/, "")} pasada(s). Para llevar un clip de 4 s a 12 s: Largo del clip × 3 vueltas, o Segundos = 12.${TL.body/FPS <= largoClip(v0) + .05 ? " Con una sola pasada, Repetir, Ida y vuelta y Congelar no se notan: subí Vueltas o alargá la pieza." : ""}` : "Velocidad, entrada, salida y repetición se aplican a los videos. Con fotos solo cuenta la duración."; $("bpmInfo").textContent = S.bpm + " BPM"; $("styInfo").textContent = S.capas.filter(c => c.on).map(c => STYLES[c.estilo].n).join(" + ") || "sin efecto";
   if (actx && master) master.gain.value = S.vol;
+  if (S.loopModo === "idavuelta") items.forEach(it => { if (it.vid && it.el.readyState >= 1) memPreparar(it); }); else items.forEach(it => { if (it.mem) memSoltar(it); });
+  $("memInfo").hidden = S.loopModo !== "idavuelta" || !vid0(); memAviso();
   $("json").value = JSON.stringify(ajustes()); save(); renderMios(); rearmarAudio(); }
 function ajustes(){ const {par: _, ...rest} = S; return {lab: "LANZA TD Lab", ...rest, parametros: S.capas.map((c, k) => c.on ? {capa: k + 1, estilo: c.estilo, valores: parCapa(k, c.estilo)} : null).filter(Boolean), fuentes: items.map(it => it.name), cortes: TL.T.map(s => [s.f0, s.it ? s.it.name : null]), cuadros: TL.total}; }
 const on = (sel, attr, key, extra) => document.querySelectorAll(sel).forEach(b => b.onclick = () => { S[key] = b.dataset[attr]; if (extra) extra(); sync(); });
@@ -1826,16 +1875,16 @@ function renderMios(){ const box = $("mine"); box.innerHTML = "";
 
 // ─── carga
 function hint(t, warn){ $("srcHint").textContent = t; $("srcHint").className = "hint" + (warn ? " warn" : ""); }
-function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid) it.el.pause(); if (it.live && !list.includes(it)) camSoltar(it); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
+function nuevasFuentes(list, label){ items.forEach(it => { if (it.vid){ it.el.pause(); if (!list.includes(it)) memSoltar(it); } if (it.live && !list.includes(it)) camSoltar(it); }); items = list; fuenteId++; fi = 0; lastF = -1e9; stopAudio();
   VAUD = (items.find(it => it.vid && it.audio) || {}).audio || null; if (!VAUD && S.musica === "video") S.musica = "pulso";
   $("srcName").textContent = label; PIN.capas = cargarPin(label); PIN.ult = []; sync(); }
 // ─── cámara en vivo como fuente (también capturadoras, OBS Virtual Camera o cualquier entrada de video del sistema)
 const CAM = {n: 0, it: null};
 function camSoltar(it){ try { it.stream.getTracks().forEach(t => t.stop()); } catch(e) {} if (CAM.it === it) CAM.it = null; $("camBox").hidden = true; }
 async function camAbrir(deviceId){
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ hint("Este navegador no da acceso a la cámara.", true); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ hint("Este navegador no da acceso a la cámara acá." + (enMarco ? avisoMarco : ""), true); return; }
   let st; try { st = await navigator.mediaDevices.getUserMedia({video: {deviceId: deviceId ? {exact: deviceId} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 30}}, audio: false}); }
-  catch(e){ hint(e && e.name === "NotAllowedError" ? "No hay permiso para la cámara. Habilitalo en el candado de la barra de direcciones (en la página publicada puede estar bloqueado: abrí el HTML suelto o desde tu servidor local)." : "No pude abrir la cámara (" + (e && e.name || e) + ").", true); return; }
+  catch(e){ hint(e && e.name === "NotAllowedError" ? "No hay permiso para la cámara: habilitalo en el candado de la barra de direcciones y volvé a tocar el botón." + (enMarco ? avisoMarco : "") : "No pude abrir la cámara (" + (e && e.name || e) + ")." + (enMarco ? avisoMarco : ""), true); return; }
   const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.srcObject = st; await v.play().catch(() => {});
   await new Promise(r => { if (v.videoWidth) r(); else { v.onloadedmetadata = r; setTimeout(r, 3000); } });
   const tr = st.getVideoTracks()[0], it = {el: v, w: v.videoWidth || 1280, h: v.videoHeight || 720, vid: false, live: true, stream: st, name: tr ? tr.label || "Cámara" : "Cámara"};
