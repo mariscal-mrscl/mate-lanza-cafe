@@ -3,6 +3,7 @@
 Procesadores de video para artistas visuales, creados por LANZAPOST. Ideado y construido por Martin Casse. Todo corre en el navegador: el material no se sube a ningún lado.
 
 - **index.html**: portada con los dos labs y el botón para instalarlos como app.
+- **como-usar.html**: guía corta para el equipo (recorrido, cada lab, atajos, exportar).
 - **LANZA_ASCII_LAB.html**: ASCII, palabra, dither y campo de lanzas sobre fotos y videos, con montaje por match cut, grilla BPM, velocidad del clip, cámara y micrófono en vivo y exportación MP4.
 
 Los dos labs comparten el funcionamiento general: los mismos 9 formatos (9:16, Storie 80 %, 4:5 contenido, 4:5, 3:4, 1:1, 4:3, 16:9 y 2.39:1), el grupo Clip en Material (velocidad, qué pasa cuando el clip termina y duración), encuadre con llenar o encajar, escala y posición, música (audio del video, pulso interno, canción o nada), sujeto con pincel, keyframes, presets y proyecto en archivo, y Salida con MP4 cuadro por cuadro, varios formatos de una vez y pantalla completa limpia.
