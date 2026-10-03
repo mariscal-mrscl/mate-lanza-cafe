@@ -111,7 +111,7 @@ details.log[open] summary::before{content:"− "}
 
 <div class="app">
   <section class="stage" aria-label="Monitor">
-    <div class="bar"><a class="name" href="./" title="Volver al inicio">← LANZA · SIGNAL LAB</a><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
+    <div class="bar"><a class="name" href="./" title="Volver al inicio">← LANZA · SIGNAL LAB</a><span>fuente <b id="srcName">—</b></span><span>estilo <b id="styInfo">—</b></span><span>duración <b id="durInfo">—</b></span><span>tempo <b id="bpmInfo">—</b></span><span>fluidez <b id="fpsInfo">—</b></span><span>carga <b id="cargaInfo">—</b></span><span id="bypInfo" hidden><b>SIN EFECTO</b></span><span id="recInfo" hidden><b class="rec">● GRABANDO GESTOS</b></span></div>
     <div class="mon" id="mon">
       <canvas id="cv" width="1080" height="1920"></canvas><canvas id="msOv" hidden></canvas>
       <div class="explorar" id="explorar" hidden>
@@ -487,7 +487,7 @@ const cap = () => S.capas[S.sel], estSel = () => cap().cambios && cap().cambios.
 const MODOS = {suma: 0, pantalla: 1, aclarar: 2, multiplicar: 3, diferencia: 4, mezcla: 5};
 
 const $ = id => document.getElementById(id);
-const cv = $("cv"), ctx = cv.getContext("2d");
+const cv = $("cv"), ovC = document.createElement("canvas"), ctx = ovC.getContext("2d");   // cv: el lienzo visible (WebGL); ovC: la capa 2D de encima (logo, pie, guías), que solo se redibuja cuando cambia
 const srcC = document.createElement("canvas"), srcX = srcC.getContext("2d");
 const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x-a)/(b-a))); return t*t*(3-2*t); };
 function rng(seed){ let a = seed>>>0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -495,8 +495,8 @@ const tick = () => new Promise(r => setTimeout(r, 0));
 let logoImg = new Image(); logoImg.src = URL.createObjectURL(new Blob([LOGO_SVG], {type:"image/svg+xml"}));
 
 // ─── WebGL2: cada estilo es un pase de shader (o de geometría) sobre la fuente, después la estela y la terminación
-const glc = document.createElement("canvas");
-const gl = glc.getContext("webgl2", {premultipliedAlpha:false, preserveDrawingBuffer:true, antialias:false, alpha:false});
+// el cuadro se dibuja directo en el lienzo visible (no se copia a un canvas 2D); pide la placa de alto rendimiento si hay dos y no reserva buffers que no se usan
+const gl = cv.getContext("webgl2", {premultipliedAlpha:false, preserveDrawingBuffer:false, antialias:false, alpha:false, depth:false, stencil:false, powerPreference:"high-performance"});
 const FLT = gl ? !!gl.getExtension("EXT_color_buffer_float") : false;
 
 const VS = `#version 300 es
@@ -525,6 +525,18 @@ vec3 tinte(vec3 s){ return s/max(lum(s), .25); }
 `;
 const FS = {
 copy: `void main(){ o = texture(uSrc, vUv); }`,
+ubicar: `uniform sampler2D uVid; uniform vec4 uRect; uniform float uEsp;   // el cuadro de video en su lugar del lienzo (llenar, encajar, escala, posición, espejo)
+void main(){ vec2 p = vec2(vUv.x, 1. - vUv.y), q = (p - uRect.xy)/uRect.zw;
+  if (q.x < 0. || q.y < 0. || q.x > 1. || q.y > 1.){ o = vec4(0., 0., 0., 1.); return; }
+  if (uEsp > .5) q.x = 1. - q.x; o = vec4(texture(uVid, q).rgb, 1.); }`,
+present: `uniform sampler2D uImg, uOver, uMk, uMs; uniform vec2 uCan; uniform vec4 uRect; uniform float uBg, uMkOn, uMsOn;   // salida: efecto en su recuadro + capa de encima + máscara
+void main(){ vec2 p = vUv*uCan, q = vec2((p.x - uRect.x)/uRect.z, (p.y - (uCan.y - uRect.y - uRect.w))/uRect.w);
+  bool ad = q.x >= 0. && q.y >= 0. && q.x <= 1. && q.y <= 1.;
+  vec3 c = ad ? texture(uImg, q).rgb : vec3(uBg);
+  if (ad && uMkOn > .5) c = min(vec3(1.), c + .45*texture(uMk, q).a);
+  vec4 v = texture(uOver, vUv); c = mix(c, v.rgb, v.a);
+  if (uMsOn > .5) c *= texture(uMs, vUv).a;
+  o = vec4(c, 1.); }`,
 feedback: `void main(){
   vec2 a = asp(), o0 = vec2(.3 + uP4*.4, .5), c = (vUv - o0)*a;
   float z = 1. - (.004 + uP1*.045)*(1. + 2.5*PK)*uVel, r = (uP2 - .5)*.09*(1. + PK)*uVel;
@@ -808,23 +820,28 @@ void main(){ o = vec4(vC, 1.); }`
 };
 
 let P = {}, glOk = !!gl;
+// los shaders se piden todos al abrir pero no se espera a que compilen: cada uno se revisa la primera vez que se usa (o antes, de a uno, en los ratos libres)
+const KPC = gl && gl.getExtension("KHR_parallel_shader_compile");
 function program(fs, vs = VS){
-  const p = gl.createProgram();
-  [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].forEach(([ty, src]) => { const s = gl.createShader(ty); gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); gl.attachShader(p, s); });
-  gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); p.loc = {}; return p; }
+  const p = gl.createProgram(); p.sh = [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]].map(([ty, src]) => { const s = gl.createShader(ty); gl.shaderSource(s, src); gl.compileShader(s); gl.attachShader(p, s); return s; });
+  gl.linkProgram(p); p.loc = {}; p.ok = false; return p; }
+function listo(p){ if (p.ok) return true;
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)){ const s = p.sh.find(s => !gl.getShaderParameter(s, gl.COMPILE_STATUS)); glErr("No pude compilar los shaders: " + (s ? gl.getShaderInfoLog(s) : gl.getProgramInfoLog(p))); return false; }
+  p.sh.forEach(s => gl.deleteShader(s)); p.sh = []; return p.ok = true; }
+function shadersEnReposo(){ const q = Object.values(P).filter(p => !p.ok); if (!q.length || !glOk) return;
+  const p = q.find(p => !KPC || gl.getProgramParameter(p, KPC.COMPLETION_STATUS_KHR)); if (p) listo(p); setTimeout(shadersEnReposo, 30); }
 function glErr(t){ glOk = false; $("glErr").textContent = t; $("glErr").hidden = false; }
 if (!gl) glErr("Este navegador no tiene WebGL2. Probá con Chrome, Edge, Firefox o Safari recientes.");
 else try {
   for (const k in FS) P[k] = program(HEAD + FS[k]);
   for (const k in GEO_VS) P["g_" + k] = program(GEO_FS[k], GEO_VS[k]);
-  gl.bindVertexArray(gl.createVertexArray());
-} catch(e){ glErr("No pude compilar los shaders: " + e.message); }
+  gl.bindVertexArray(gl.createVertexArray()); setTimeout(shadersEnReposo, 300);
+} catch(e){ glErr("No pude preparar los shaders: " + e.message); }
 
 function use(p, U, T = {}){
-  gl.useProgram(p); let unit = 0;
+  if (!p.ok && !listo(p)) return; gl.useProgram(p); let unit = 0;
   for (const k in U){ const l = k in p.loc ? p.loc[k] : (p.loc[k] = gl.getUniformLocation(p, k)); if (l === null) continue;
-    const v = U[k]; !Array.isArray(v) ? gl.uniform1f(l, v) : v.length === 3 ? gl.uniform3f(l, v[0], v[1], v[2]) : gl.uniform2f(l, v[0], v[1]); }
+    const v = U[k]; !Array.isArray(v) ? gl.uniform1f(l, v) : v.length === 4 ? gl.uniform4f(l, v[0], v[1], v[2], v[3]) : v.length === 3 ? gl.uniform3f(l, v[0], v[1], v[2]) : gl.uniform2f(l, v[0], v[1]); }
   for (const k in T){ const l = k in p.loc ? p.loc[k] : (p.loc[k] = gl.getUniformLocation(p, k)); if (l === null) continue;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(k === "uHist" ? gl.TEXTURE_2D_ARRAY : gl.TEXTURE_2D, T[k]); gl.uniform1i(l, unit); unit++; } }
 function target(w, h, flt, wrap = gl.CLAMP_TO_EDGE, f32 = false){   // f32: estado exacto (partículas), sin filtro
@@ -835,7 +852,7 @@ function target(w, h, flt, wrap = gl.CLAMP_TO_EDGE, f32 = false){   // f32: esta
   const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   return {t, f, w, h}; }
 const drop = T => { if (T){ gl.deleteTexture(T.t); gl.deleteFramebuffer(T.f); } };
-function bindT(T){ gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.f : null); gl.viewport(0, 0, T ? T.w : glc.width, T ? T.h : glc.height); }
+function bindT(T){ gl.bindFramebuffer(gl.FRAMEBUFFER, T ? T.f : null); gl.viewport(0, 0, T ? T.w : cv.width, T ? T.h : cv.height); }
 function clearT(T){ bindT(T); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); }
 const quad = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -844,12 +861,10 @@ let R = null;
 const escPrev = () => S.liviana && !exportando ? .5 : 1;   // vista previa liviana: media resolución (el MP4 sale completo)
 function recursos(){
   const fm = F(), e = escPrev(), W = Math.round(fm.W*e), H = Math.round(fm.H*e); if (R && R.W === W && R.H === H) return R;
-  if (R){ [R.tr[0], R.tr[1], R.mx[0], R.mx[1], R.as, R.sj].forEach(drop); if (R.mk) gl.deleteTexture(R.mk); R.L.forEach(soltarCapa); gl.deleteTexture(R.src); }
-  glc.width = W; glc.height = H; srcC.width = W; srcC.height = H; srcX.setTransform(e, 0, 0, e, 0, 0);
-  const src = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, src);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  R = {W, H, src, hw: W >> 1, hh: H >> 1, tr: [target(W, H, FLT), target(W, H, FLT)], mx: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), sj: target(W, H, FLT), mk: null, i: 0, L: [null, null, null]};
+  if (R){ [R.tr[0], R.tr[1], R.mx[0], R.mx[1], R.as, R.sj, R.srcT, R.fin].forEach(drop); if (R.mk) gl.deleteTexture(R.mk); R.L.forEach(soltarCapa); }
+  srcC.width = W; srcC.height = H; srcX.setTransform(e, 0, 0, e, 0, 0);
+  const srcT = target(W, H, false);
+  R = {W, H, srcT, src: srcT.t, fin: target(W, H, false), mkKey: "", mkOk: false, hw: W >> 1, hh: H >> 1, tr: [target(W, H, FLT), target(W, H, FLT)], mx: [target(W, H, FLT), target(W, H, FLT)], as: target(W, H, false), sj: target(W, H, FLT), mk: null, i: 0, L: [null, null, null]};
   reiniciar(); return R; }
 function soltarCapa(L){ if (!L) return; L.fx.forEach(drop); if (L.ovT) gl.deleteTexture(L.ovT); if (L.pt) L.pt.forEach(drop); if (L.hist){ gl.deleteTexture(L.hist); gl.deleteFramebuffer(L.histF); } }
 function capaEstado(k){
@@ -1088,6 +1103,28 @@ function dibHud(x, L, W, H, p, k){
     if (p[3] > .2){ x.font = `400 ${Math.round(15*k)}px "JetBrains Mono", monospace`; const w = PALABRAS[t.id % PALABRAS.length], w2 = PALABRAS[(t.id*7 + 3) % PALABRAS.length];
       const tx = t.x > .5 ? bx - 10*k - x.measureText(w).width : bx + s + 10*k; x.fillText(w, tx, by); if (i % 2 === 0) x.fillText(w2, tx, by + 18*k); } });
   if (p[3] > .5 && S.hudTexto){ x.font = `500 ${Math.round(78*k)}px "JetBrains Mono", monospace`; x.textAlign = "center"; x.textBaseline = "alphabetic"; x.fillText(S.hudTexto.toUpperCase(), W/2, H*.9); x.textAlign = "left"; } }
+// video, cámara o memoria de cuadros: el cuadro va directo a la placa y un shader lo ubica en el lienzo (sin pasar por el canvas 2D).
+// Es el caso común (video horizontal en 9:16, que se agranda); el resultado es el mismo que con el canvas 2D.
+// Seguimiento, Red de datos, HUD y el sujeto «por luz» leen la fuente desde el canvas 2D: con ellos se usa el camino de siempre
+const LEEN_FUENTE = ["tracking", "red", "hud"];
+let vidT = null;
+function fuenteDirecta(f, r){
+  if (f >= TL.body || S.sjModo === "luz") return false; const seg = segAt(f); if (!seg || !seg.it) return false;
+  if (S.capas.some((c, k) => c.on && LEEN_FUENTE.includes(estiloDe(k, seg, f)))) return false;
+  const it = seg.it, el = it.el, mc = it.vid ? memCuadro(seg, f) : null, img = mc ? mc.b : (it.vid || it.live) ? el : null;
+  if (!img || (!mc && el.readyState < 2)) return false;
+  const {W, H} = F(), [x, y, dw, dh] = ubicar(it.w, it.h), k = Math.min(dw/it.w, dh/it.h), esp = it.live && S.espejo, achica = k*escPrev() < .7;
+  if (k < .95) return false;   // si a resolución completa el video se achica, el canvas 2D lo filtra distinto: se queda en el camino de siempre para que el MP4 no cambie
+  gl.bindTexture(gl.TEXTURE_2D, vidT || (vidT = texturaLineal())); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, achica ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR); if (achica) gl.generateMipmap(gl.TEXTURE_2D);   // al achicar mucho, mipmaps (como la calidad alta del canvas 2D)
+  bindT(r.srcT); use(P.ubicar, {uRect: [(esp ? W - x - dw : x)/W, y/H, dw/W, dh/H], uEsp: esp ? 1 : 0}, {uVid: vidT}); quad(); return true; }
+// qué compone la máscara de sujeto en este cuadro: si no cambió, se reusa la que ya está en la placa
+const objIds = new WeakMap(); let objN = 0; const objId = o => o ? (objIds.get(o) || (objIds.set(o, ++objN), objN)) : 0;
+function claveMascara(f){ const seg = f < TL.body ? segAt(f) : null, it = seg && seg.it;
+  if (!it || it.live || S.sjModo === "luz" || trazo) return "cada|" + f + "|" + Math.random();
+  const pins = PIN.capas.filter(c => f >= c.f0 && f <= c.f1).map(c => c.trazos.map(t => t.pts.length + (t.trk ? "@" + f : "")).join(",")).join(";");
+  return [S.fmt, S.liviana, S.sjB, S.sjU, S.sjModo, S.ajuste, S.esc, S.px, S.py, items.indexOf(it), objId(probOf(f, seg)), PIN.capas.length, pins].join("|"); }
 function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; devuelve el destino con el resultado
   const r = R, {W, H} = r, L = capaEstado(k), p = parEf(k, st, f, ft, seg), pb = parCapa(k, st), vel = S.capas[k].vel ?? 1, t = base.uT*vel;
   L.vel = vel; L.paso = (L.paso || 0) + vel; const avanza = L.paso >= 1; if (avanza) L.paso -= Math.floor(L.paso);   // con velocidad < 1 lo que va cuadro a cuadro avanza solo algunos cuadros
@@ -1135,23 +1172,36 @@ function capaRender(k, st, f, base, ft, seg, inC){   // un estilo en su capa; de
     gl.disable(gl.BLEND); }
   else { bindT(dst); use(P[st] && st !== "particulas" ? P[st] : P.copy, U, {uSrc: r.src, uPrev: prev.t}); quad(); }
   return dst; }
+// ─── monitor de carga: cuánto tarda la placa de video en cada etapa del cuadro (si el navegador lo permite) y la compu en armarlo
+const TQ = gl && gl.getExtension("EXT_disjoint_timer_query_webgl2"), CARGA = {on: false, q: null, cola: [], gpu: {}, cpu: 0};
+function etapa(n){ if (!TQ || !CARGA.on) return; if (CARGA.q) gl.endQuery(TQ.TIME_ELAPSED_EXT); const q = gl.createQuery(); gl.beginQuery(TQ.TIME_ELAPSED_EXT, q); CARGA.q = q; CARGA.cola.push([n, q]); }
+function etapaFin(){ if (CARGA.q){ gl.endQuery(TQ.TIME_ELAPSED_EXT); CARGA.q = null; } }
+function cargaLeer(){ if (!TQ) return; const dis = gl.getParameter(TQ.GPU_DISJOINT_EXT);
+  while (CARGA.cola.length){ const [n, q] = CARGA.cola[0]; if (CARGA.cola.length < 40 && !gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) break; CARGA.cola.shift();
+    if (!dis && gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)){ const ms = gl.getQueryParameter(q, gl.QUERY_RESULT)/1e6; CARGA.gpu[n] = n in CARGA.gpu ? CARGA.gpu[n]*.9 + ms*.1 : ms; } gl.deleteQuery(q); } }
+function cargaTexto(){ const g = CARGA.gpu, tot = ["fuente", "capas", "post", "salida"].reduce((s, k) => s + (g[k] || 0), 0), d = v => (v || 0).toFixed(1);
+  const presu = (1000/FPS).toFixed(1), el = $("cargaInfo"); if (!el) return;
+  el.textContent = TQ ? d(tot) + " ms" : d(CARGA.cpu) + " ms";
+  el.className = (TQ ? tot : CARGA.cpu) > 1000/FPS*.7 ? "lento" : "";
+  el.parentElement.title = (TQ ? `Placa de video por cuadro: fuente ${d(g.fuente)} · capas ${d(g.capas)} · post ${d(g.post)} · salida ${d(g.salida)} ms. ` : "") + `Compu: ${d(CARGA.cpu)} ms. Hay ${presu} ms por cuadro a ${FPS} fps.`; }
 let VUELTA = 0;   // vueltas del loop en la vista previa (con "cada vuelta distinta", el reloj del efecto no vuelve a cero)
 const relojEf = (f, pre) => f + Math.round(S.desfase*FPS) + (S.libre && !pre && !exportando ? VUELTA*TL.total : 0);
 function render(f, pre = false, fe = relojEf(f, pre)){
   if (!glOk) return; const r = recursos(), {W, H} = r, fm = F();
   if (cv.width !== fm.CW || cv.height !== fm.CH){ cv.width = fm.CW; cv.height = fm.CH; }
   if (!pre && salto(f)) reiniciar(); lastF = f;   // si la compu no llega y saltea algunos cuadros, la memoria sigue
-  const sk = claveFuente(f); if (sk !== r.srcKey){ fuente(f); r.srcKey = sk;
-    gl.bindTexture(gl.TEXTURE_2D, r.src); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcC); }
+  etapa("fuente"); const sk = claveFuente(f); if (sk !== r.srcKey){ if (fuenteDirecta(f, r)) r.srcKey = sk; else { fuente(f); r.srcKey = sk;
+    gl.bindTexture(gl.TEXTURE_2D, r.srcT.t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, srcC); } }
   const seg = segAt(Math.min(f, TL.body - 1)) || {f0: 0, k: 0}, ft = feat(f), inC = f >= TL.body;
   const base = {uRes: [W, H], uAnchoF: fm.W, uT: fe/FPS, uF: fe, uLow: ft.low_e, uHigh: ft.high_e, uCut: inC ? 0 : Math.exp(-(f - seg.f0)/2.5), uPulso: S.pulso,
     uSeed: (Math.floor(f/(beatF()/2)) + seg.k*17) % 997};
   // la máscara de figura y fondo se arma antes: la usan las capas que van solo en una parte y el Sujeto general
-  let mk = false; const zonas = S.capas.some(c => c.on && c.zona && c.zona !== "todo");
-  if (S.sjModo !== "off" && !inC && (S.sj > 0 || zonas)){ const M = mascara(f);
+  // se rearma solo si cambió algo de lo que la compone (en una foto quieta, una sola vez)
+  let mk = false; const zonas = S.capas.some(c => c.on && c.zona && c.zona !== "todo"), verSj = S.sjVer || PIN.modo !== "off";
+  if (S.sjModo !== "off" && !inC && (S.sj > 0 || zonas || verSj)){ const kk = claveMascara(f); if (kk === r.mkKey) mk = r.mkOk; else { r.mkKey = kk; const M = mascara(f); r.mkOk = !!M;
     if (M){ if (!r.mk){ r.mk = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); }
-      gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, M); mk = true; } }
+      gl.bindTexture(gl.TEXTURE_2D, r.mk); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, M); mk = true; } } }
   const ZC = c => mk ? ({todo: 0, figura: 1, fondo: 2}[c.zona || "todo"] || 0) : 0, mkT = mk ? r.mk : r.src;
   let img;
   if (BYPASS && !pre){ bindT(r.mx[0]); use(P.copy, {}, {uSrc: r.src}); quad(); img = r.mx[0]; }   // ver sin efecto (tecla B)
@@ -1160,7 +1210,7 @@ function render(f, pre = false, fe = relojEf(f, pre)){
   // capa 1 se funde sobre la imagen limpia con su opacidad (o no está, si se apagó); las otras se mezclan encima con su modo
   // una capa apagada no se borra: guarda su memoria y sigue donde estaba al volver a activarla
   // "en cadena": la capa procesa lo que viene de abajo en vez de la imagen original. "Ver sola": se ve esa capa, las otras siguen corriendo
-  let acc = {t: r.src}, m = 0, sola = null; const c0 = S.capas[0], fuente0 = r.src;
+  etapa("capas"); let acc = {t: r.src}, m = 0, sola = null; const c0 = S.capas[0], fuente0 = r.src;
   for (let k=0; k<3; k++){ const c = S.capas[k]; if (!c.on) continue;
     if (c.in === "abajo" && k > 0) r.src = acc.t;
     let out; try { out = capaRender(k, estiloDe(k, seg, f), f, base, ft, seg, inC); } finally { r.src = fuente0; }
@@ -1170,7 +1220,7 @@ function render(f, pre = false, fe = relojEf(f, pre)){
     const dst = r.mx[m]; m = 1 - m; bindT(dst);
     use(P.mezcla, {uOp0: op, uModo: k === 0 ? 5 : MODOS[c.modo] || 0, uZonaC: ZC(c)}, {uA: acc.t, uB: out.t, uMask: mkT}); quad(); acc = dst; }
   if (sola && !exportando) acc = sola;
-  const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
+  etapa("post"); const tp = r.tr[r.i], td = r.tr[1 - r.i]; r.i = 1 - r.i;   // estela al final de la mezcla
   bindT(td); use(P.trail, {uEstela: S.estela}, {uFx: acc.t, uPrev: tp.t}); quad();
   img = td;
   if (S.ascii !== "off"){   // panel ASCII: cada celda toma el brillo de la mezcla y elige su carácter
@@ -1180,16 +1230,30 @@ function render(f, pre = false, fe = relojEf(f, pre)){
     bindT(r.sj); use(P.sujeto, {...base, uZona: S.sjZona === "fondo" ? 1 : 0, uCant: Math.min(1, S.sj), uOtro: {foto: 0, flash: 1, negro: 2}[S.sjOtro]}, {uImg: img.t, uSrc: r.src, uMask: r.mk}); quad(); img = r.sj; }
   const ef = efDe(f); if (ef < .999){ const d = r.mx[m]; bindT(d); use(P.mezcla, {uOp0: ef, uModo: 5, uZonaC: 0}, {uA: r.src, uB: img.t, uMask: mkT}); quad(); img = d; }   // fade general: cuánto efecto vs. la imagen limpia
   }
-  bindT(null); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "color" ? 0 : 1, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
+  bindT(r.fin); use(P.final, {uRes: [W, H], uF: f, uMono: S.color === "color" ? 0 : 1, uGam: S.gam, uGrano: S.grano, uInv: S.inv ? 1 : 0,
     uExpo: S.expo, uCon: S.con, uAltas: S.altas, uNeg: S.neg, uDuo: S.color === "duo" ? 1 : 0, uDA: hexRGB(S.duoA), uDB: hexRGB(S.duoB)}, {uImg: img.t}); quad();
   if (!pre) componer(f);
 }
-function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
+// salida: el efecto va en su recuadro; encima, la capa 2D (velo, guías, logo, pie, cierre), que se redibuja y se sube a la placa solo cuando cambia;
+// la vista de la máscara de sujeto se suma y la máscara de salida recorta todo (afuera queda negro)
+const GLO = {ovT: null, ovKey: "", msT: null, msKey: ""};
+function texturaLineal(){ const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; }
+function subirCanvas(t, c){ gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c); }
+function componer(f){
   const fm = F(), {W, H, CW, CH, X0, Y0} = fm, ink = S.inv ? "#000" : "#fff", inC = f >= TL.body;
-  ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.imageSmoothingQuality = "high";
-  if (X0 || Y0){ ctx.fillStyle = S.inv ? "#fff" : "#000"; ctx.fillRect(0, 0, CW, CH); }
-  ctx.drawImage(glc, X0, Y0, W, H);
-  if (S.sjModo !== "off" && !inC && (S.sjVer || PIN.modo !== "off") && MK.width > 1){ ctx.globalAlpha = .45; ctx.globalCompositeOperation = "lighter"; ctx.drawImage(MK, X0, Y0, W, H); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; }
+  const key = [S.fmt, CW, CH, S.marca, S.velo, S.inv, inC ? f : "", logoImg.complete, document.fonts.status].join("|");
+  if (key !== GLO.ovKey){ GLO.ovKey = key; capaEncima(f, fm, ink, inC); subirCanvas(GLO.ovT || (GLO.ovT = texturaLineal()), ovC); }
+  const m = msVal(f), msOn = msActiva(m) && !(exportando && !S.msMp4);
+  if (msOn){ mascaraSalida(CW, CH, m); if (GLO.msKey !== smKey){ GLO.msKey = smKey; subirCanvas(GLO.msT || (GLO.msT = texturaLineal()), SM); } }
+  const verMk = S.sjModo !== "off" && !inC && (S.sjVer || PIN.modo !== "off") && R.mkOk && !!R.mk;
+  etapa("salida"); bindT(null);
+  use(P.present, {uCan: [CW, CH], uRect: [X0, Y0, W, H], uBg: S.inv && (X0 || Y0) ? 1 : 0, uMkOn: verMk ? 1 : 0, uMsOn: msOn ? 1 : 0},
+    {uImg: R.fin.t, uOver: GLO.ovT, uMk: verMk ? R.mk : R.fin.t, uMs: msOn ? GLO.msT : GLO.ovT}); quad(); etapaFin(); }
+function capaEncima(f, fm, ink, inC){   // capa 2D sobre transparente: velo, guías del recuadro, cierre con logo, logo de cabecera y pie
+  const {W, H, CW, CH, X0, Y0} = fm; if (ovC.width !== CW || ovC.height !== CH){ ovC.width = CW; ovC.height = CH; }
+  ctx.clearRect(0, 0, CW, CH); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.imageSmoothingQuality = "high";
   if (S.marca && S.velo > 0 && fm.mask){ const g = ctx.createLinearGradient(0, 0, 0, CH), sh = S.inv ? "255,255,255" : "0,0,0";   // velo opcional detrás de logo y pie
     fm.mask.forEach(([y, a]) => g.addColorStop(Math.min(1, y/CH), `rgba(${sh},${((1 - a)*S.velo).toFixed(3)})`)); ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH); }
   if (fm.grid){ const x1 = X0 + W, y1 = Y0 + H; ctx.save(); ctx.lineWidth = 1;   // guías del recuadro, como en el ASCII Lab
@@ -1206,7 +1270,6 @@ function componer(f){   // capa 2D: máscara, logo de cabecera, pie y cierre
     if (fm.foot === "r"){ const y1 = Y0 + H; ctx.textAlign = "right"; ctx.fillText(txt, X0 + W, CH - y1 < 120 ? y1 + (CH - y1 - 18)/2 : y1 + 40); }
     else { ctx.textAlign = "center"; ctx.fillText(txt, CW/2, fm.foot); }
     ctx.restore(); }
-  aplicarMascara(CW, CH, f);
 }
 function tint(on, draw){ if (!on){ draw(); return; } ctx.save(); ctx.filter = "invert(1)"; draw(); ctx.restore(); }
 
@@ -1566,8 +1629,9 @@ function loop(ts){
     } else { stopAudio(); if (REC.t.size && !playing) recCerrarTodo(); }
     fi = Math.min(fi, TL.total - 1);
     if (ts - lastR >= 1000/FPS - 4 && !SJ.corriendo && !CAL){ const dt = ts - lastR; lastR = ts; if (dt < 1000) fpsE = fpsE ? fpsE*.9 + dt*.1 : dt;
-      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); if ((S.msKfs || []).length && fi !== msVisto && !msDrag && !msPulsado) msDesdeKf(); render(fi); copiarSalida(); if (MSED) dibujarGuia(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
-    if (ts - fpsT > 500){ fpsT = ts; if (SONG && S.musica === "cancion") dibujarOnda(); const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; }
+      if (S.arranque === "andando" && salto(fi)) calentar(fi); else { prepVivo(fi, playing); if ((S.msKfs || []).length && fi !== msVisto && !msDrag && !msPulsado) msDesdeKf(); CARGA.on = true; const tc = performance.now(); render(fi); CARGA.cpu = CARGA.cpu*.9 + (performance.now() - tc)*.1; CARGA.on = false; etapaFin(); cargaLeer();
+        copiarSalida(); if (pedirPNG){ pedirPNG = false; guardarPNG(); } if (MSED) dibujarGuia(); if (fi !== kfVisto){ if (estSel() !== estVisto) sync(); else slidersKF(); } } }
+    if (ts - fpsT > 500){ fpsT = ts; if (SONG && S.musica === "cancion") dibujarOnda(); const v = Math.min(FPS, Math.round(1000/(fpsE || 1000/FPS))); $("fpsInfo").textContent = v + " fps"; $("fpsInfo").className = v < 18 ? "lento" : ""; cargaTexto(); }
     $("scrub").max = TL.total - 1; $("scrub").value = fi;
     const s = fi/FPS; $("tc").textContent = `${String(Math.floor(s/60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}:${String(fi % FPS).padStart(2, "0")}`;
     const b = Math.floor(fi/beatF() + 1e-6) % 4; document.querySelectorAll("#beat i").forEach((e, k) => e.classList.toggle("on", k === b));
@@ -1922,9 +1986,6 @@ function mascaraSalida(W, H, m){ const key = [S.msForma, S.msInv, JSON.stringify
   SM.width = W; SM.height = H; SMx.clearRect(0, 0, W, H); SMx.fillStyle = "#fff"; SMx.filter = m.msSuave > 0 ? `blur(${(m.msSuave*Math.min(W, H)).toFixed(1)}px)` : "none";
   if (S.msInv){ SMx.save(); SMx.filter = "none"; SMx.fillRect(0, 0, W, H); SMx.restore(); SMx.globalCompositeOperation = "destination-out"; }
   msCamino(SMx, W, H, m); SMx.fill(); SMx.globalCompositeOperation = "source-over"; SMx.filter = "none"; return SM; }
-function aplicarMascara(W, H, f){ const m = msVal(f); if (!msActiva(m) || (exportando && !S.msMp4)) return;
-  ctx.globalCompositeOperation = "destination-in"; ctx.drawImage(mascaraSalida(W, H, m), 0, 0);
-  ctx.globalCompositeOperation = "destination-over"; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = "source-over"; }
 function dibujarGuia(){ const ov = $("msOv"); ov.hidden = !MSED || S.msForma === "off"; if (ov.hidden) return;
   const r = cv.getBoundingClientRect(), mr = $("mon").getBoundingClientRect(), dpr = devicePixelRatio || 1;
   Object.assign(ov.style, {left: (r.left - mr.left) + "px", top: (r.top - mr.top) + "px", width: r.width + "px", height: r.height + "px"});
@@ -2106,7 +2167,9 @@ $("expCola").onclick = async () => { const lista = [...document.querySelectorAll
   const antes = S.fmt; colaCorte = false; $("expCola").disabled = true;
   try { for (const [q, f] of lista.entries()){ if (colaCorte) break; S.fmt = f; _lc = null; reiniciar(); sync(); $("expCola").textContent = `Exportando ${q + 1} de ${lista.length}…`; await exportar(); } }
   finally { S.fmt = antes; _lc = null; lastF = -1e9; sync(); $("expCola").disabled = false; $("expCola").textContent = "Exportar los marcados"; } };
-$("png").onclick = () => cv.toBlob(b => link(b, `lanza_signal_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
+let pedirPNG = false;
+$("png").onclick = () => { pedirPNG = true; };
+const guardarPNG = () => cv.toBlob(b => link(b, `lanza_signal_${S.capas.filter(c => c.on).map(c => c.estilo).join("+")}_${String(fi).padStart(4, "0")}.png`, `Descargar cuadro ${fi}`), "image/png");
 $("rec").onclick = () => {
   if (recorder) return; if (!cv.captureStream || !window.MediaRecorder){ $("expHint").textContent = "Este navegador no puede grabar el lienzo."; return; }
   const conAudio = soundOn && PLAY && actx;
